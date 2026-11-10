@@ -1,0 +1,16 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Laravel dependencies
+laravel/vendor/
+laravel/node_modules/
+
+# Laravel runtime files
+laravel/storage/framework/
+laravel/storage/logs/
+laravel/bootstrap/cache/*.php
+
+# OS files
+.DS_Store
