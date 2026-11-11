@@ -23,13 +23,51 @@ use App\Http\Controllers\Admin\KalenderKerjaController;
 use App\Http\Controllers\Admin\LokasiCurigaController;
 use App\Http\Controllers\Auth\LupaSandiController;
 use App\Http\Controllers\Admin\ApiTokenController;
+use App\Http\Controllers\BerandaController;
+use App\Http\Controllers\LamaranController;
+use App\Http\Controllers\Pelamar\AuthController as PelamarAuthController;
+use App\Http\Middleware\WajibLoginPelamar;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\LamaranAdminController;
+use App\Http\Controllers\Admin\LowonganAdminController;
 
 /*
 |--------------------------------------------------------------------------
-| LANDING
+| PORTAL PENERIMAAN MAGANG (publik)
 |--------------------------------------------------------------------------
 */
-Route::get('/', [AuthController::class, 'tampilLanding'])->name('landing');
+Route::get('/', [BerandaController::class, 'index'])->name('beranda');
+
+// Langkah 1: tombol "Kirim Lamaran" di modal (hanya periode) -> login / form data
+Route::post('/lowongan/{lowongan}/lamar', [LamaranController::class, 'pilih'])
+    ->middleware('throttle:10,1')
+    ->name('lamaran.pilih');
+
+/*
+|--------------------------------------------------------------------------
+| LOGIN PRAKERIN (pelamar) - terpisah dari login absensi (/login)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('prakerin')->name('pelamar.')->group(function () {
+    Route::get('/login', [PelamarAuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [PelamarAuthController::class, 'login'])->middleware('throttle:5,1')->name('login.store');
+    Route::get('/daftar', [PelamarAuthController::class, 'showRegister'])->name('register');
+    Route::post('/daftar', [PelamarAuthController::class, 'register'])->middleware('throttle:5,1')->name('register.store');
+    Route::post('/logout', [PelamarAuthController::class, 'logout'])->name('logout');
+});
+
+// Langkah 2 & 3: lengkapi data + kirim lamaran (wajib login pelamar)
+Route::middleware(WajibLoginPelamar::class)->group(function () {
+    Route::get('/lamaran/lengkapi', [LamaranController::class, 'form'])->name('lamaran.form');
+    Route::post('/lamaran', [LamaranController::class, 'store'])->middleware('throttle:5,1')->name('lamaran.store');
+});
+
+/*
+|--------------------------------------------------------------------------
+| LANDING ABSENSI (lama, dipindah dari '/')
+|--------------------------------------------------------------------------
+*/
+Route::get('/absensi', [AuthController::class, 'tampilLanding'])->name('landing');
 
 /*
 |--------------------------------------------------------------------------
@@ -165,8 +203,8 @@ Route::prefix('admin')
         Route::get('/peserta/import', fn () => view('admin.peserta.import'))->name('peserta.import.form');
         Route::get('/peserta/create', [PesertaController::class, 'create'])->name('peserta.create');
         Route::post('/peserta', [PesertaController::class, 'store'])->name('peserta.store');
-        Route::get('/peserta/{peserta}/edit', [PesertaController::class, 'edit'])->name('peserta.edit');   
-        Route::put('/peserta/{peserta}', [PesertaController::class, 'update'])->name('peserta.update');    
+        Route::get('/peserta/{peserta}/edit', [PesertaController::class, 'edit'])->name('peserta.edit');
+        Route::put('/peserta/{peserta}', [PesertaController::class, 'update'])->name('peserta.update');
         // Foto pas, CV, dan surat permohonan: hanya admin
         Route::get('/peserta/{peserta}/berkas/{jenis}', [PesertaController::class, 'berkas'])
             ->where('jenis', 'foto|cv|surat')->name('peserta.berkas');
@@ -179,4 +217,21 @@ Route::prefix('admin')
         Route::delete('/peserta/{peserta}/riwayat', [PesertaKelolaController::class, 'hapusRiwayat'])->name('peserta.riwayat.destroy');
         Route::delete('/peserta/{peserta}', [PesertaKelolaController::class, 'destroy'])->name('peserta.destroy');
         Route::post('/peserta/{peserta}/reset-password', [PesertaKelolaController::class, 'resetPassword'])->name('peserta.reset-password');
+
+        // Dashboard admin
+        Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+
+        // Lamaran Masuk
+        Route::get('/lamaran', [LamaranAdminController::class, 'index'])->name('lamaran.index');
+        Route::get('/lamaran/{lamaran}/berkas/{jenis}', [LamaranAdminController::class, 'berkas'])
+            ->where('jenis', 'foto|cv|surat')->name('lamaran.berkas');
+        Route::post('/lamaran/{lamaran}/terima', [LamaranAdminController::class, 'terima'])->name('lamaran.terima');
+        Route::post('/lamaran/{lamaran}/tolak', [LamaranAdminController::class, 'tolak'])->name('lamaran.tolak');
+
+        // Kelola Lowongan
+        Route::get('/lowongan', [LowonganAdminController::class, 'index'])->name('lowongan.index');
+        Route::post('/lowongan', [LowonganAdminController::class, 'store'])->name('lowongan.store');
+        Route::put('/lowongan/{lowongan}', [LowonganAdminController::class, 'update'])->name('lowongan.update');
+        Route::post('/lowongan/{lowongan}/status', [LowonganAdminController::class, 'status'])->name('lowongan.status');
+        Route::delete('/lowongan/{lowongan}', [LowonganAdminController::class, 'destroy'])->name('lowongan.destroy');
     });
