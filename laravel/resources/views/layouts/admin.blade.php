@@ -25,7 +25,7 @@
 <title>@yield('title', 'Admin Presensi') — New Armada Group</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
-<script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif']}}}}</script>
+<script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif']},colors:{brand:{blue:'#3b82f6',purpleBlue:'#6366f1',red:'#e11d48',dark:'#0f172a',lightBg:'#f8fafc'}}}}}</script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 <script>
   // Status sidebar diingat antar halaman (bawaan: tertutup, hanya ikon garis tiga). Di layar kecil selalu mulai tertutup.
@@ -47,32 +47,13 @@ html.sb-open #sidebar{display:flex}
 </head>
 <body class="bg-white font-sans text-slate-800 min-h-screen flex flex-col">
 
-<header class="border-b border-slate-200 bg-white sticky top-0 z-40">
-<div class="h-14 px-4 sm:px-6 flex items-center justify-between gap-4">
-<div class="flex items-center gap-3">
-<button type="button" onclick="toggleSidebar()" aria-label="Buka atau tutup menu" title="Menu"
-        class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100">
-<svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-</button>
-<a href="{{ route('admin.presensi.index') }}" class="flex items-center gap-2.5">
-<span class="bg-white rounded-xl p-1 px-1.5 shadow ring-1 ring-slate-200 flex"><img src="{{ asset('images/logo-newarmada.png') }}" alt="New Armada" class="h-9 w-auto"></span>
-<span class="leading-tight"><b class="block text-sm font-extrabold text-slate-900">New Armada</b><small class="block text-[10px] font-bold text-blue-600 tracking-wide">PT MEKAR ARMADA JAYA</small></span>
-</a>
-</div>
-<div class="flex items-center gap-3">
-<span class="hidden sm:block text-[11px] text-slate-500">{{ session('admin_nama', 'Administrator') }}</span>
-<form method="POST" action="{{ route('admin.logout') }}">@csrf
-<button class="text-xs font-semibold border border-slate-300 rounded-md px-4 py-1.5 hover:bg-slate-50">Log Out</button>
-</form>
-</div>
-</div>
-</header>
+@include('admin.partials.topnav', ['denganSidebar' => true])
 
 <div class="flex flex-1 min-h-0">
 
-<div id="sbBackdrop" onclick="toggleSidebar(false)" class="fixed inset-0 top-14 bg-slate-900/40 z-30"></div>
+<div id="sbBackdrop" onclick="toggleSidebar(false)" class="fixed inset-0 top-20 bg-slate-900/40 z-30"></div>
 
-<aside id="sidebar" class="fixed lg:sticky top-14 left-0 z-40 w-64 shrink-0 h-[calc(100vh-3.5rem)] self-start flex-col bg-slate-50 border-r border-slate-200">
+<aside id="sidebar" class="fixed lg:sticky top-20 left-0 z-40 w-64 shrink-0 h-[calc(100vh-5rem)] self-start flex-col bg-slate-50 border-r border-slate-200">
 <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1 text-[13px] font-medium">
 
 {{-- Menu: Peserta (dropdown) --}}

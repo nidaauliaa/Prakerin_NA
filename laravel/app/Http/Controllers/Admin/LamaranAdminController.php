@@ -1,0 +1,244 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\DataMagang;
+use App\Models\Departemen;
+use App\Models\Lamaran;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+
+class LamaranAdminController extends Controller
+{
+    private const BERKAS = [
+        'foto'  => 'foto_pas',
+        'cv'    => 'cv_path',
+        'surat' => 'surat_permohonan_path',
+    ];
+
+    public function index(Request $request)
+    {
+        $tipe   = in_array($request->tipe, ['smk', 'kuliah'], true) ? $request->tipe : 'semua';
+        $status = in_array($request->status, ['semua', 'menunggu', 'diterima', 'ditolak'], true)
+            ? $request->status : 'menunggu';
+
+        $query = Lamaran::with(['lowongan' => fn ($q) => $q->withTrashed()])->latest();
+        $tipe !== 'semua'   && $query->where('tipe_magang', $tipe);
+        $status !== 'semua' && $query->where('status', $status);
+
+        $lamaran = $query->paginate(15)->withQueryString();
+
+        // Data untuk modal. Kalau dibuka dari dashboard (?buka=ID) dan barisnya
+        // tidak ada di halaman ini, ikut disertakan.
+        $baris = $lamaran->getCollection();
+        if ($request->filled('buka') && ! $baris->contains('id', (int) $request->buka)) {
+            $tambahan = Lamaran::with(['lowongan' => fn ($q) => $q->withTrashed()])->find((int) $request->buka);
+            $tambahan && $baris = $baris->push($tambahan);
+        }
+
+        return view('admin.lamaran.index', [
+            'lamaran'    => $lamaran,
+            'rows'       => $baris->map(fn (Lamaran $l) => $this->untukModal($l))->values(),
+            'tipe'       => $tipe,
+            'status'     => $status,
+            'departemen' => DB::table('departemen')->orderBy('nama')->get(['id', 'nama']),
+        ]);
+    }
+
+    /** Berkas pribadi dilayani lewat route admin (disimpan di disk privat). */
+    public function berkas(Lamaran $lamaran, string $jenis)
+    {
+        $kolom = self::BERKAS[$jenis] ?? abort(404);
+        $path  = $lamaran->{$kolom};
+
+        abort_unless($path && Storage::disk('local')->exists($path), 404);
+
+        return response()->file(Storage::disk('local')->path($path));
+    }
+
+    /**
+     * Terima pelamar = sama seperti "Tambah Anak Magang" (PesertaController@store):
+     * membuat akun peserta (users) + data_magang sekaligus, sandi awal User::PASSWORD_DEFAULT.
+     * Berkas disalin dari disk privat (lamaran/*) ke disk `public` (peserta/*) karena halaman
+     * peserta lama (PesertaController@berkas) membacanya dari sana.
+     */
+    public function terima(Request $request, Lamaran $lamaran)
+    {
+        $data = $request->validate([
+            'nis_nim'       => ['required', 'string', 'max:50', 'unique:users,nis_nim', 'unique:data_magang,nis_nim'],
+            'departemen_id' => ['required', 'integer', 'exists:departemen,id'],
+        ], [
+            'nis_nim.required'       => 'NIS / NIM wajib diisi untuk menerima peserta.',
+            'nis_nim.unique'         => 'NIS / NIM ini sudah dipakai peserta lain.',
+            'departemen_id.required' => 'Departemen wajib dipilih.',
+        ]);
+
+        if ($lamaran->status !== 'menunggu') {
+            return back()->withErrors(['status' => 'Lamaran ini sudah diputuskan sebelumnya.']);
+        }
+
+        $lowongan = $lamaran->lowongan()->withTrashed()->first();
+
+        // Pastikan menerima orang ini tidak melebihi kuota harian posisi tersebut.
+        if ($lowongan && $penuh = $lowongan->cekKetersediaan($lamaran->tgl_mulai->copy(), $lamaran->tgl_selesai->copy())) {
+            return back()->withErrors([
+                'kuota' => sprintf(
+                    'Tidak bisa diterima: kuota %s penuh pada %s s/d %s (%d orang).',
+                    $lowongan->judul,
+                    $penuh['dari']->translatedFormat('j M Y'),
+                    $penuh['sampai']->translatedFormat('j M Y'),
+                    $lowongan->kuota
+                ),
+            ]);
+        }
+
+        $departemen = Departemen::findOrFail($data['departemen_id']);
+        $publik     = Storage::disk('public');
+
+        $foto  = $this->salinKePublik($lamaran->foto_pas, 'peserta/foto');
+        $cv    = $this->salinKePublik($lamaran->cv_path, 'peserta/cv');
+        $surat = $this->salinKePublik($lamaran->surat_permohonan_path, 'peserta/surat');
+
+        try {
+            $user = DB::transaction(function () use ($lamaran, $data, $departemen, $foto, $cv, $surat, $publik) {
+                $uuid = (string) Str::uuid();
+
+                // Email pelamar dipakai kalau belum dipakai akun lain (kolom users.email unik).
+                $email = User::where('email', $lamaran->email)->exists() ? null : $lamaran->email;
+
+                $user = User::create([
+                    'name'                 => $lamaran->nama,
+                    'email'                => $email,
+                    'nis_nim'              => $data['nis_nim'],
+                    'password'             => User::PASSWORD_DEFAULT,   // di-hash oleh cast 'hashed'
+                    'wajib_ganti_password' => true,
+                    'peran'                => 'peserta',
+                    'status_akun'          => 'aktif',
+                    'departemen_id'        => $departemen->id,
+                    'uuid_kartu'           => $uuid,
+                    'foto_profil_url'      => $foto ? $publik->url($foto) : null,
+                    'asal_sekolah'         => $lamaran->asal_sekolah,
+                    'jurusan'              => $lamaran->jurusan,
+                ]);
+
+                $dm = DataMagang::create([
+                    'nama'                  => $lamaran->nama,
+                    'tipe_magang'           => $lamaran->tipe_magang,
+                    'no_wa'                 => $lamaran->no_wa,
+                    'alamat'                => $lamaran->alamat,
+                    'nis_nim'               => $data['nis_nim'],
+                    'asal_sekolah'          => $lamaran->asal_sekolah,
+                    'jurusan'               => $lamaran->jurusan,
+                    'departemen_id'         => $departemen->id,
+                    'divisi'                => $departemen->nama,
+                    'uuid'                  => $uuid,
+                    'user_id'               => $user->id,
+                    'ditautkan_pada'        => now(),
+                    'foto_pas'              => $foto,
+                    'pembimbing'            => $lamaran->pembimbing,
+                    'no_wa_pembimbing'      => $lamaran->no_wa_pembimbing,
+                    'cv_path'               => $cv,
+                    'surat_permohonan_path' => $surat,
+                    // Format sama dengan data import: "04/05/2026 - 04/11/2026"
+                    'periode_magang'        => $lamaran->tgl_mulai->format('d/m/Y') . ' - ' . $lamaran->tgl_selesai->format('d/m/Y'),
+                    'status_kehadiran_awal' => 'hadir',
+                    'tgl_mulai'             => $lamaran->tgl_mulai->toDateString(),
+                    'tgl_selesai'           => $lamaran->tgl_selesai->toDateString(),
+                    'status_magang'         => 'ACTIVE',
+                ]);
+
+                $lamaran->update([
+                    'status'          => 'diterima',
+                    'nis_nim'         => $data['nis_nim'],
+                    'diputuskan_oleh' => $this->adminId(),
+                    'diputuskan_pada' => now(),
+                    'data_magang_id'  => $dm->id,
+                ]);
+
+                return $user;
+            });
+        } catch (\Throwable $e) {
+            $publik->delete(array_filter([$foto, $cv, $surat]));   // jangan tinggalkan berkas yatim
+            throw $e;
+        }
+
+        return back()->with('sukses', "{$lamaran->nama} diterima. Akun absensi dibuat: login dengan NIS/NIM {$data['nis_nim']} dan sandi awal " . User::PASSWORD_DEFAULT . '. QR kartu bisa dicetak di menu Peserta Aktif.');
+    }
+
+    /** Salin berkas pelamar (disk privat) ke disk public; mengembalikan path barunya atau null. */
+    private function salinKePublik(?string $path, string $folder): ?string
+    {
+        $privat = Storage::disk('local');
+
+        if (! $path || ! $privat->exists($path)) {
+            return null;
+        }
+
+        $baru = $folder . '/' . Str::uuid() . '.' . pathinfo($path, PATHINFO_EXTENSION);
+        Storage::disk('public')->writeStream($baru, $privat->readStream($path));
+
+        return $baru;
+    }
+
+    public function tolak(Request $request, Lamaran $lamaran)
+    {
+        $data = $request->validate(['catatan_admin' => ['nullable', 'string', 'max:500']]);
+
+        if ($lamaran->status !== 'menunggu') {
+            return back()->withErrors(['status' => 'Lamaran ini sudah diputuskan sebelumnya.']);
+        }
+
+        $lamaran->update([
+            'status'          => 'ditolak',
+            'catatan_admin'   => $data['catatan_admin'] ?? null,
+            'diputuskan_oleh' => $this->adminId(),
+            'diputuskan_pada' => now(),
+        ]);
+
+        return back()->with('sukses', "Lamaran {$lamaran->nama} ditolak.");
+    }
+
+    private function untukModal(Lamaran $l): array
+    {
+        $smk = $l->tipe_magang === 'smk';
+
+        return [
+            'id'            => $l->id,
+            'nama'          => $l->nama,
+            'smk'           => $smk,
+            'posisi'        => $l->lowongan?->judul ?? '-',
+            'email'         => $l->email,
+            'wa'            => $l->no_wa,
+            'alamat'        => $l->alamat,
+            'asal'          => $l->asal_sekolah,
+            'asalLabel'     => $smk ? 'Asal Sekolah' : 'Asal Kampus',
+            'jurusan'       => $l->jurusan,
+            'periode'       => $l->tgl_mulai->translatedFormat('j M Y') . ' s/d ' . $l->tgl_selesai->translatedFormat('j M Y')
+                               . ' (' . (int) $l->tgl_mulai->diffInDays($l->tgl_selesai) . ' hari)',
+            'pembimbingLabel' => $smk ? 'Pembimbing Sekolah' : 'Dosen Pembimbing',
+            'pembimbing'    => $l->pembimbing ? $l->pembimbing . ($l->no_wa_pembimbing ? ' (' . $l->no_wa_pembimbing . ')' : '') : '-',
+            'tglDaftar'     => $l->created_at->translatedFormat('d M Y, H:i'),
+            'status'        => $l->status,
+            'catatan'       => $l->catatan_admin,
+            'diputuskan'    => $l->diputuskan_pada?->translatedFormat('d M Y, H:i'),
+            'departemenId'  => $l->lowongan?->departemen_id,
+            'nisNim'        => $l->nis_nim,
+            'berkas'        => [
+                'foto'  => $l->foto_pas ? route('admin.lamaran.berkas', [$l, 'foto']) : null,
+                'cv'    => $l->cv_path ? route('admin.lamaran.berkas', [$l, 'cv']) : null,
+                'surat' => $l->surat_permohonan_path ? route('admin.lamaran.berkas', [$l, 'surat']) : null,
+            ],
+        ];
+    }
+
+    /** ID admin dari tabel `admins` (kosong kalau login lewat guard lain). */
+    private function adminId(): ?int
+    {
+        return config('auth.guards.admin') ? Auth::guard('admin')->id() : null;
+    }
+}

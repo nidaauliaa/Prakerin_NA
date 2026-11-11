@@ -49,6 +49,11 @@ return [
             'provider' => 'admins',
         ],
 
+        'pelamar' => [
+        'driver'   => 'session',
+        'provider' => 'pelamar',
+        ],
+
     ],
 
     /*
@@ -79,7 +84,10 @@ return [
             'driver' => 'eloquent',
             'model' => App\Models\Admin::class,
         ],
-
+        'pelamar' => [
+            'driver' => 'eloquent',
+            'model'  => App\Models\Pelamar::class,
+        ],
     ],
 
     /*

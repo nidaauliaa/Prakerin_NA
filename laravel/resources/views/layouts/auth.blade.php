@@ -92,7 +92,7 @@ body{margin:0;font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:va
       <div><b>New Armada</b><small>PT MEKAR ARMADA JAYA</small></div>
     </div>
 
-    <a href="{{ route('landing') }}" class="back">&larr;</a>
+    <a href="{{ route('beranda') }}" class="back">&larr;</a>
 
     <div class="brand-mid">
       <div class="badge"><i></i> @yield('badge', 'Portal Pendaftaran')</div>
