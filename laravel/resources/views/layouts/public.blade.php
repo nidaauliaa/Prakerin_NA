@@ -66,13 +66,51 @@
             <!-- Action Button -->
             <div class="flex items-center space-x-3">
                 @auth('pelamar')
-                    <span class="hidden sm:inline text-sm font-medium text-slate-600">Halo, {{ auth('pelamar')->user()->nama }}</span>
-                    <form method="POST" action="{{ route('pelamar.logout') }}">
-                        @csrf
-                        <button type="submit" class="px-5 py-2.5 rounded-full text-sm font-semibold text-brand-blue border border-brand-blue hover:bg-blue-50 transition">
-                            Keluar
+                    @php
+                        $plm     = auth('pelamar')->user();
+                        $plmFoto = $plm->fotoPath() ? route('pelamar.foto', ['v' => $plm->updated_at?->timestamp]) : null;
+                    @endphp
+                    <span class="hidden xl:inline text-sm font-medium text-slate-600">Halo, {{ $plm->nama_depan }}</span>
+
+                    <a href="{{ route('pelamar.dashboard') }}" class="inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-full text-sm font-semibold text-white bg-brand-blue hover:bg-brand-darkBlue shadow-sm shadow-blue-500/20 transition">
+                        <i class="fa-solid fa-gauge-high text-xs"></i>
+                        <span class="hidden sm:inline">Dashboard Peserta</span><span class="sm:hidden">Dashboard</span>
+                    </a>
+
+                    <!-- Foto profil + menu (nama lengkap, ubah foto, keluar) -->
+                    <div class="relative" id="menuProfilWrap">
+                        <button type="button" id="btnMenuProfil" aria-haspopup="true" aria-expanded="false" title="Menu akun"
+                                class="block w-11 h-11 rounded-full overflow-hidden ring-2 ring-white shadow-md hover:ring-blue-200 transition focus:outline-none focus:ring-blue-300">
+                            @if ($plmFoto)
+                                <img src="{{ $plmFoto }}" alt="Foto profil {{ $plm->nama_depan }}" class="w-full h-full object-cover">
+                            @else
+                                <span class="w-full h-full flex items-center justify-center bg-gradient-to-tr from-brand-blue to-indigo-500 text-white font-bold">{{ $plm->inisial }}</span>
+                            @endif
                         </button>
-                    </form>
+
+                        <div id="menuProfil" class="hidden absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 z-50">
+                            <div class="px-4 py-3 border-b border-slate-100">
+                                <p class="text-sm font-bold text-slate-900 break-words">{{ $plm->nama }}</p>
+                                <p class="text-[11px] text-slate-400 break-all">{{ $plm->email }}</p>
+                            </div>
+
+                            <form id="formFotoProfil" method="POST" action="{{ route('pelamar.foto.update') }}" enctype="multipart/form-data">
+                                @csrf
+                                <input type="file" name="foto" id="inputFotoProfil" accept="image/png,image/jpeg" class="hidden" onchange="this.form.submit()">
+                                <button type="button" onclick="document.getElementById('inputFotoProfil').click()"
+                                        class="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-3">
+                                    <i class="fa-solid fa-camera w-4 text-center text-slate-400"></i> Ubah Foto Profil
+                                </button>
+                            </form>
+
+                            <form method="POST" action="{{ route('pelamar.logout') }}">
+                                @csrf
+                                <button type="submit" class="w-full text-left px-4 py-2.5 text-sm font-medium text-rose-600 hover:bg-rose-50 flex items-center gap-3">
+                                    <i class="fa-solid fa-right-from-bracket w-4 text-center"></i> Keluar (Logout)
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 @else
                     <a href="{{ route('pelamar.login') }}" class="px-5 py-2.5 rounded-full text-sm font-semibold text-brand-blue border border-brand-blue hover:bg-blue-50 transition">
                         Sign In / Log In
@@ -81,6 +119,17 @@
             </div>
         </div>
     </header>
+
+@if (session('sukses_foto') || session('galat_foto'))
+    @php $fotoOk = (bool) session('sukses_foto'); @endphp
+    <div id="toastFoto" class="fixed top-24 right-4 z-[60] max-w-sm w-[calc(100%-2rem)] bg-white border {{ $fotoOk ? 'border-emerald-200' : 'border-rose-200' }} shadow-xl rounded-2xl p-4 flex items-start space-x-3">
+        <div class="w-9 h-9 shrink-0 rounded-full {{ $fotoOk ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600' }} flex items-center justify-center">
+            <i class="fa-solid {{ $fotoOk ? 'fa-circle-check' : 'fa-circle-exclamation' }}"></i>
+        </div>
+        <div class="text-xs text-slate-600 leading-relaxed flex-1 self-center">{{ session('sukses_foto') ?? session('galat_foto') }}</div>
+        <button onclick="document.getElementById('toastFoto').remove()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+@endif
 
 @yield('content')
 
@@ -132,6 +181,25 @@
     </footer>
 
 @stack('modals')
+<script>
+    // Menu foto profil: buka/tutup saat foto diklik, tutup saat klik di luar atau tekan Esc
+    (function () {
+        const btn = document.getElementById('btnMenuProfil');
+        const menu = document.getElementById('menuProfil');
+        if (btn && menu) {
+            const tutup = () => { menu.classList.add('hidden'); btn.setAttribute('aria-expanded', 'false'); };
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const buka = menu.classList.toggle('hidden') === false;
+                btn.setAttribute('aria-expanded', buka ? 'true' : 'false');
+            });
+            document.addEventListener('click', (e) => { if (!menu.contains(e.target)) tutup(); });
+            document.addEventListener('keydown', (e) => { if (e.key === 'Escape') tutup(); });
+        }
+        const toast = document.getElementById('toastFoto');
+        if (toast) setTimeout(() => toast.remove(), 5000);
+    })();
+</script>
 @stack('scripts')
 </body>
 </html>

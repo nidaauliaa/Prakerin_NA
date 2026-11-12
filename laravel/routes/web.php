@@ -30,6 +30,9 @@ use App\Http\Middleware\WajibLoginPelamar;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\LamaranAdminController;
 use App\Http\Controllers\Admin\LowonganAdminController;
+use App\Http\Controllers\Admin\SuratBalasanController;
+use App\Http\Controllers\Admin\ProfilAdminController;
+use App\Http\Controllers\Pelamar\DashboardController as PelamarDashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -37,12 +40,12 @@ use App\Http\Controllers\Admin\LowonganAdminController;
 |--------------------------------------------------------------------------
 */
 Route::get('/', [BerandaController::class, 'index'])->name('beranda');
-
+ 
 // Langkah 1: tombol "Kirim Lamaran" di modal (hanya periode) -> login / form data
 Route::post('/lowongan/{lowongan}/lamar', [LamaranController::class, 'pilih'])
     ->middleware('throttle:10,1')
     ->name('lamaran.pilih');
-
+ 
 /*
 |--------------------------------------------------------------------------
 | LOGIN PRAKERIN (pelamar) - terpisah dari login absensi (/login)
@@ -55,13 +58,22 @@ Route::prefix('prakerin')->name('pelamar.')->group(function () {
     Route::post('/daftar', [PelamarAuthController::class, 'register'])->middleware('throttle:5,1')->name('register.store');
     Route::post('/logout', [PelamarAuthController::class, 'logout'])->name('logout');
 });
+ 
+// Dashboard peserta (wajib login pelamar): profil, riwayat, notifikasi, surat balasan, foto profil
+Route::prefix('prakerin')->name('pelamar.')->middleware(WajibLoginPelamar::class)->group(function () {
+    Route::get('/dashboard', [PelamarDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/berkas/{jenis}', [PelamarDashboardController::class, 'berkas'])->where('jenis', 'foto|cv|surat')->name('berkas');
+    Route::get('/foto-profil', [PelamarDashboardController::class, 'foto'])->name('foto');
+    Route::post('/foto-profil', [PelamarDashboardController::class, 'ubahFoto'])->middleware('throttle:10,1')->name('foto.update');
+    Route::get('/lamaran/{lamaran}/surat-balasan', [PelamarDashboardController::class, 'suratBalasan'])->name('surat');
+});
 
 // Langkah 2 & 3: lengkapi data + kirim lamaran (wajib login pelamar)
 Route::middleware(WajibLoginPelamar::class)->group(function () {
     Route::get('/lamaran/lengkapi', [LamaranController::class, 'form'])->name('lamaran.form');
     Route::post('/lamaran', [LamaranController::class, 'store'])->middleware('throttle:5,1')->name('lamaran.store');
 });
-
+ 
 /*
 |--------------------------------------------------------------------------
 | LANDING ABSENSI (lama, dipindah dari '/')
@@ -148,6 +160,10 @@ Route::prefix('admin')
             return redirect()->route('login');
         })->name('logout');
 
+        // Foto profil admin (menu foto di header)
+        Route::get('/profil/foto', [ProfilAdminController::class, 'foto'])->name('profil.foto');
+        Route::post('/profil/foto', [ProfilAdminController::class, 'ubahFoto'])->name('profil.foto.update');
+
         Route::get('/kartu-id', [KartuIdController::class, 'cetak'])->name('kartu.cetak');
 
         // Presensi
@@ -203,8 +219,8 @@ Route::prefix('admin')
         Route::get('/peserta/import', fn () => view('admin.peserta.import'))->name('peserta.import.form');
         Route::get('/peserta/create', [PesertaController::class, 'create'])->name('peserta.create');
         Route::post('/peserta', [PesertaController::class, 'store'])->name('peserta.store');
-        Route::get('/peserta/{peserta}/edit', [PesertaController::class, 'edit'])->name('peserta.edit');
-        Route::put('/peserta/{peserta}', [PesertaController::class, 'update'])->name('peserta.update');
+        Route::get('/peserta/{peserta}/edit', [PesertaController::class, 'edit'])->name('peserta.edit');   
+        Route::put('/peserta/{peserta}', [PesertaController::class, 'update'])->name('peserta.update');    
         // Foto pas, CV, dan surat permohonan: hanya admin
         Route::get('/peserta/{peserta}/berkas/{jenis}', [PesertaController::class, 'berkas'])
             ->where('jenis', 'foto|cv|surat')->name('peserta.berkas');
@@ -220,7 +236,7 @@ Route::prefix('admin')
 
         // Dashboard admin
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
-
+        
         // Lamaran Masuk
         Route::get('/lamaran', [LamaranAdminController::class, 'index'])->name('lamaran.index');
         Route::get('/lamaran/{lamaran}/berkas/{jenis}', [LamaranAdminController::class, 'berkas'])
@@ -228,6 +244,10 @@ Route::prefix('admin')
         Route::post('/lamaran/{lamaran}/terima', [LamaranAdminController::class, 'terima'])->name('lamaran.terima');
         Route::post('/lamaran/{lamaran}/tolak', [LamaranAdminController::class, 'tolak'])->name('lamaran.tolak');
 
+        // Surat Balasan Ijin Prakerin (dibuat HRD setelah menerima lamaran)
+        Route::post('/lamaran/{lamaran}/surat-balasan', [SuratBalasanController::class, 'simpan'])->name('lamaran.surat.simpan');
+        Route::get('/lamaran/{lamaran}/surat-balasan/pdf', [SuratBalasanController::class, 'pdf'])->name('lamaran.surat.pdf');
+        
         // Kelola Lowongan
         Route::get('/lowongan', [LowonganAdminController::class, 'index'])->name('lowongan.index');
         Route::post('/lowongan', [LowonganAdminController::class, 'store'])->name('lowongan.store');

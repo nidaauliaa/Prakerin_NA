@@ -112,8 +112,8 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">CV / Portofolio <span class="text-slate-400 font-normal">(opsional, PDF maks 5 MB)</span></label>
-                        <input type="file" name="cv" accept="application/pdf" class="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-600 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-700 file:font-semibold hover:file:bg-slate-200">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">CV / Portofolio {!! $isSmk ? '<span class="text-slate-400 font-normal">(opsional, PDF maks 5 MB)</span>' : '<span class="text-rose-500">*</span> <span class="text-slate-400 font-normal">(wajib, PDF maks 5 MB)</span>' !!}</label>
+                        <input type="file" name="cv" accept="application/pdf" @required(! $isSmk) class="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-600 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-700 file:font-semibold hover:file:bg-slate-200">
                     </div>
 
                     <div>

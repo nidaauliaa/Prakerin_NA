@@ -27,7 +27,7 @@ class LamaranAdminController extends Controller
         $status = in_array($request->status, ['semua', 'menunggu', 'diterima', 'ditolak'], true)
             ? $request->status : 'menunggu';
 
-        $query = Lamaran::with(['lowongan' => fn ($q) => $q->withTrashed()])->latest();
+        $query = Lamaran::with(['lowongan' => fn ($q) => $q->withTrashed(), 'suratBalasan'])->latest();
         $tipe !== 'semua'   && $query->where('tipe_magang', $tipe);
         $status !== 'semua' && $query->where('status', $status);
 
@@ -37,7 +37,7 @@ class LamaranAdminController extends Controller
         // tidak ada di halaman ini, ikut disertakan.
         $baris = $lamaran->getCollection();
         if ($request->filled('buka') && ! $baris->contains('id', (int) $request->buka)) {
-            $tambahan = Lamaran::with(['lowongan' => fn ($q) => $q->withTrashed()])->find((int) $request->buka);
+            $tambahan = Lamaran::with(['lowongan' => fn ($q) => $q->withTrashed(), 'suratBalasan'])->find((int) $request->buka);
             $tambahan && $baris = $baris->push($tambahan);
         }
 
@@ -167,7 +167,10 @@ class LamaranAdminController extends Controller
             throw $e;
         }
 
-        return back()->with('sukses', "{$lamaran->nama} diterima. Akun absensi dibuat: login dengan NIS/NIM {$data['nis_nim']} dan sandi awal " . User::PASSWORD_DEFAULT . '. QR kartu bisa dicetak di menu Peserta Aktif.');
+        // Lanjut ke langkah berikutnya: HRD diminta membuat Surat Balasan Ijin Prakerin (form terbuka otomatis).
+        return redirect()
+            ->route('admin.lamaran.index', ['status' => 'diterima', 'buka' => $lamaran->id, 'surat' => 1])
+            ->with('sukses', "{$lamaran->nama} diterima. Akun absensi dibuat: login dengan NIS/NIM {$data['nis_nim']} dan sandi awal " . User::PASSWORD_DEFAULT . '. QR kartu bisa dicetak di menu Peserta Aktif. Langkah berikutnya: isi form Surat Balasan Ijin Prakerin di bawah ini.');
     }
 
     /** Salin berkas pelamar (disk privat) ke disk public; mengembalikan path barunya atau null. */
@@ -228,6 +231,20 @@ class LamaranAdminController extends Controller
             'diputuskan'    => $l->diputuskan_pada?->translatedFormat('d M Y, H:i'),
             'departemenId'  => $l->lowongan?->departemen_id,
             'nisNim'        => $l->nis_nim,
+            'suratUrl'      => route('admin.lamaran.surat.simpan', $l),
+            'suratPdf'      => $l->suratBalasan ? route('admin.lamaran.surat.pdf', $l) : null,
+            // Isi form surat: data yang sudah tersimpan, atau usulan awal dari data lamaran.
+            'surat'         => [
+                'nomor_surat'      => $l->suratBalasan?->nomor_surat ?? '',
+                'tanggal_surat'    => ($l->suratBalasan?->tanggal_surat ?? today())->toDateString(),
+                'ditujukan_kepada' => $l->suratBalasan?->ditujukan_kepada ?? '',
+                'tgl_pengajuan'    => ($l->suratBalasan?->tgl_pengajuan ?? $l->created_at)->toDateString(),
+                'media_pengajuan'  => $l->suratBalasan?->media_pengajuan ?? '',
+                'tgl_mulai'        => ($l->suratBalasan?->tgl_mulai ?? $l->tgl_mulai)->toDateString(),
+                'tgl_selesai'      => ($l->suratBalasan?->tgl_selesai ?? $l->tgl_selesai)->toDateString(),
+                'tgl_induction'    => ($l->suratBalasan?->tgl_induction ?? $l->tgl_mulai)->toDateString(),
+            ],
+            'adaSurat'      => (bool) $l->suratBalasan,
             'berkas'        => [
                 'foto'  => $l->foto_pas ? route('admin.lamaran.berkas', [$l, 'foto']) : null,
                 'cv'    => $l->cv_path ? route('admin.lamaran.berkas', [$l, 'cv']) : null,

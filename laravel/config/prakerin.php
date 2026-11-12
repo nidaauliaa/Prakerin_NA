@@ -95,4 +95,15 @@ return [
     // Satu perangkat (device_id di browser) dipakai oleh akun peserta lain dalam 24 jam terakhir
     // -> presensi ditahan untuk ACC (dugaan titip absen). Tidak pernah memblokir, supaya perangkat kantor bersama aman.
     'perangkat_bersama_cek' => true,
+
+    // ---- Surat Balasan Ijin Prakerin (PDF yang diunduh pelamar) ----
+    'surat_balasan' => [
+        'kota'          => 'Magelang',
+        'kode_nomor'    => 'PRAKERIN/HCD/MAJ',      // No.: <nomor>/PRAKERIN/HCD/MAJ/<bulan romawi>/<tahun>
+        'perusahaan'    => 'PT MEKAR ARMADA JAYA',
+        'penandatangan' => 'Bambang Sulistiyo',
+        'jabatan'       => 'HC Dev. & SHE Manager',
+        'jam_induction' => '09.00',
+        'kop'           => true,                    // false = tanpa baris nama perusahaan di atas surat (kertas sudah berkop)
+    ],
 ];

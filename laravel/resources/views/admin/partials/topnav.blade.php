@@ -4,6 +4,7 @@
     $admNama  = $adm->nama ?? $adm->name ?? 'Administrator';
     $admEmail = $adm->email ?? '';
     $inisial  = strtoupper(mb_substr($admNama, 0, 2));
+    $admFoto  = ! empty($adm->foto_profil) ? route('admin.profil.foto', ['v' => $adm->updated_at?->timestamp]) : null;
     $lamaranPending = \App\Models\Lamaran::where('status', 'menunggu')->count();
 
     $aktif = [
@@ -66,23 +67,46 @@
             </a>
         </nav>
 
-        <!-- USER PROFILE & LOGOUT -->
-        <div class="flex items-center space-x-3">
-            <div class="hidden sm:flex items-center space-x-3 border-r border-slate-200 pr-3">
-                <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-brand-blue to-brand-purpleBlue text-white flex items-center justify-center font-bold text-xs shadow-sm">
-                    {{ $inisial }}
+        <!-- FOTO PROFIL + MENU (nama lengkap, ubah foto, keluar) -->
+        <div class="relative" id="menuAdminWrap">
+            <button type="button" id="btnMenuAdmin" aria-haspopup="true" aria-expanded="false" title="Menu akun"
+                    class="flex items-center space-x-3 rounded-xl px-2 py-1.5 hover:bg-slate-50 transition focus:outline-none">
+                <span class="w-9 h-9 shrink-0 rounded-full overflow-hidden shadow-sm bg-gradient-to-tr from-brand-blue to-brand-purpleBlue text-white flex items-center justify-center font-bold text-xs">
+                    @if ($admFoto)
+                        <img src="{{ $admFoto }}" alt="Foto profil" class="w-full h-full object-cover">
+                    @else
+                        {{ $inisial }}
+                    @endif
+                </span>
+                <span class="hidden sm:block text-left text-xs">
+                    <span class="block font-bold text-slate-900 leading-tight">{{ $admNama }}</span>
+                    <span class="block text-[11px] text-slate-400">{{ $admEmail }}</span>
+                </span>
+                <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
+            </button>
+
+            <div id="menuAdmin" class="hidden absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 z-50">
+                <div class="px-4 py-3 border-b border-slate-100">
+                    <p class="text-sm font-bold text-slate-900 break-words">{{ $admNama }}</p>
+                    <p class="text-[11px] text-slate-400 break-all">{{ $admEmail }}</p>
                 </div>
-                <div class="text-left text-xs">
-                    <p class="font-bold text-slate-900 leading-tight">{{ $admNama }}</p>
-                    <p class="text-[11px] text-slate-400">{{ $admEmail }}</p>
-                </div>
+
+                <form method="POST" action="{{ route('admin.profil.foto.update') }}" enctype="multipart/form-data">
+                    @csrf
+                    <input type="file" name="foto" id="inputFotoAdmin" accept="image/png,image/jpeg" class="hidden" onchange="this.form.submit()">
+                    <button type="button" onclick="document.getElementById('inputFotoAdmin').click()"
+                            class="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-3">
+                        <i class="fa-solid fa-camera w-4 text-center text-slate-400"></i> Ubah Foto Profil
+                    </button>
+                </form>
+
+                <form method="POST" action="{{ route('admin.logout') }}" onsubmit="return confirm('Apakah Anda yakin ingin keluar dari Dashboard Admin HRD?')">
+                    @csrf
+                    <button type="submit" class="w-full text-left px-4 py-2.5 text-sm font-medium text-rose-600 hover:bg-rose-50 flex items-center gap-3">
+                        <i class="fa-solid fa-right-from-bracket w-4 text-center"></i> Keluar (Logout)
+                    </button>
+                </form>
             </div>
-            <form method="POST" action="{{ route('admin.logout') }}" onsubmit="return confirm('Apakah Anda yakin ingin keluar dari Dashboard Admin HRD?')">
-                @csrf
-                <button type="submit" class="p-2.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition" title="Log Out">
-                    <i class="fa-solid fa-right-from-bracket text-base"></i>
-                </button>
-            </form>
         </div>
     </div>
 </header>
@@ -94,3 +118,34 @@
     <a href="{{ route('admin.lowongan.index') }}" class="{{ $aktif['lowongan'] ? $mOn : $mOff }}">Lowongan</a>
     <a href="{{ route('admin.presensi.index') }}" class="{{ $aktif['peserta'] ? $mOn : $mOff }}">Peserta &amp; Presensi</a>
 </div>
+
+@if (session('sukses_foto') || session('galat_foto'))
+    @php $fotoOk = (bool) session('sukses_foto'); @endphp
+    <div id="toastFotoAdmin" class="fixed top-24 right-4 z-[60] max-w-sm w-[calc(100%-2rem)] bg-white border {{ $fotoOk ? 'border-emerald-200' : 'border-rose-200' }} shadow-xl rounded-2xl p-4 flex items-start space-x-3">
+        <div class="w-9 h-9 shrink-0 rounded-full {{ $fotoOk ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600' }} flex items-center justify-center">
+            <i class="fa-solid {{ $fotoOk ? 'fa-circle-check' : 'fa-circle-exclamation' }}"></i>
+        </div>
+        <div class="text-xs text-slate-600 leading-relaxed flex-1 self-center">{{ session('sukses_foto') ?? session('galat_foto') }}</div>
+        <button onclick="document.getElementById('toastFotoAdmin').remove()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+@endif
+
+<script>
+    // Menu foto profil admin: buka/tutup saat diklik, tutup saat klik di luar atau tekan Esc
+    (function () {
+        const btn = document.getElementById('btnMenuAdmin');
+        const menu = document.getElementById('menuAdmin');
+        if (btn && menu) {
+            const tutup = () => { menu.classList.add('hidden'); btn.setAttribute('aria-expanded', 'false'); };
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const buka = menu.classList.toggle('hidden') === false;
+                btn.setAttribute('aria-expanded', buka ? 'true' : 'false');
+            });
+            document.addEventListener('click', (e) => { if (!menu.contains(e.target)) tutup(); });
+            document.addEventListener('keydown', (e) => { if (e.key === 'Escape') tutup(); });
+        }
+        const toast = document.getElementById('toastFotoAdmin');
+        if (toast) setTimeout(() => toast.remove(), 5000);
+    })();
+</script>

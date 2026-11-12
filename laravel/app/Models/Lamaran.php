@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 class Lamaran extends Model
@@ -50,5 +51,10 @@ class Lamaran extends Model
     public function pelamar(): BelongsTo
     {
         return $this->belongsTo(Pelamar::class, 'pelamar_id');
+    }
+
+    public function suratBalasan(): HasOne
+    {
+        return $this->hasOne(SuratBalasan::class, 'lamaran_id');
     }
 }

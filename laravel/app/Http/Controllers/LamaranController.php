@@ -6,6 +6,7 @@ use App\Http\Request\PilihPeriodeRequest;
 use App\Http\Request\StoreLamaranRequest;
 use App\Models\Lamaran;
 use App\Models\Lowongan;
+use App\Models\Pelamar;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -15,6 +16,10 @@ class LamaranController extends Controller
     /** Langkah 1: simpan pilihan posisi + periode di session, lalu arahkan ke login / form data. */
     public function pilih(PilihPeriodeRequest $request, Lowongan $lowongan)
     {
+        if ($batas = $this->tolakBilaBatasTercapai()) {
+            return $batas;
+        }
+
         $mulai   = Carbon::parse($request->tgl_mulai)->startOfDay();
         $selesai = Carbon::parse($request->tgl_selesai)->startOfDay();
 
@@ -37,6 +42,10 @@ class LamaranController extends Controller
     /** Langkah 2: halaman lengkapi data (butuh login pelamar). */
     public function form()
     {
+        if ($batas = $this->tolakBilaBatasTercapai()) {
+            return $batas;
+        }
+
         $draft    = session('lamaran_draft');
         $lowongan = $draft ? Lowongan::dibuka()->find($draft['lowongan_id']) : null;
 
@@ -56,6 +65,10 @@ class LamaranController extends Controller
     /** Langkah 3: simpan lamaran. */
     public function store(StoreLamaranRequest $request)
     {
+        if ($batas = $this->tolakBilaBatasTercapai()) {
+            return $batas;
+        }
+
         $pelamar  = Auth::guard('pelamar')->user();
         $draft    = $request->draft();
         $lowongan = $request->lowongan();
@@ -103,6 +116,23 @@ class LamaranController extends Controller
             'kode'   => $lamaran->kode,
             'posisi' => $lowongan->judul,
         ]);
+    }
+
+    /** Satu pelamar maksimal Pelamar::MAKS_LAMARAN lamaran (semua status dihitung = riwayat). */
+    private function tolakBilaBatasTercapai()
+    {
+        $pelamar = Auth::guard('pelamar')->user();
+
+        if ($pelamar && $pelamar->sisaLamaran() < 1) {
+            session()->forget('lamaran_draft');
+
+            return redirect(route('beranda') . '#lowongan')->with(
+                'info',
+                'Anda sudah mengajukan ' . Pelamar::MAKS_LAMARAN . ' lamaran (batas maksimal per pelamar). Pantau statusnya di Dashboard Peserta.'
+            );
+        }
+
+        return null;
     }
 
     private function pastikanTersedia(Lowongan $lowongan, Carbon $mulai, Carbon $selesai, string $redirect): void

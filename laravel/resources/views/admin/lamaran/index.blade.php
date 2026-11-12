@@ -70,7 +70,12 @@
                                 <i class="fa-solid fa-paperclip mr-1"></i>
                                 {{ $kurang->isEmpty() ? 'Lengkap' : 'Tanpa ' . $kurang->implode(' & ') }}
                             </td>
-                            <td class="p-4"><span class="px-2 py-0.5 rounded text-[10px] font-bold {{ $badgeStatus[0] }}">{{ $badgeStatus[1] }}</span></td>
+                            <td class="p-4">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold {{ $badgeStatus[0] }}">{{ $badgeStatus[1] }}</span>
+                                @if ($l->status === 'diterima' && ! $l->suratBalasan)
+                                    <span class="block mt-1 text-[10px] font-semibold text-amber-600"><i class="fa-solid fa-triangle-exclamation"></i> Surat belum dibuat</span>
+                                @endif
+                            </td>
                             <td class="p-4 text-right">
                                 <button type="button" onclick="openDetailModal({{ $l->id }})" class="px-3.5 py-1.5 bg-slate-900 hover:bg-brand-blue text-white font-bold rounded-xl transition">
                                     {{ $l->status === 'menunggu' ? 'Verifikasi Berkas' : 'Lihat Detail' }}
@@ -148,6 +153,7 @@
                     <p><span class="text-slate-400">Status:</span> <strong id="mStatus"></strong></p>
                     <p><span class="text-slate-400">Diputuskan:</span> <strong id="mDiputuskan"></strong></p>
                     <p id="mCatatanWrap" class="hidden"><span class="text-slate-400">Catatan:</span> <strong id="mCatatan"></strong></p>
+                    <p id="mSuratWrap" class="hidden"><span class="text-slate-400">Surat Balasan:</span> <strong id="mSurat"></strong></p>
                 </div>
             </div>
 
@@ -190,10 +196,76 @@
                     <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition">Ya, Tolak</button>
                 </div>
             </form>
+
+            <!-- Panel Surat Balasan Ijin Prakerin (muncul setelah lamaran diterima) -->
+            <form id="panelSurat" method="POST" class="hidden border border-sky-200 bg-sky-50 rounded-xl p-4 space-y-3">
+                @csrf
+                <input type="hidden" name="_surat_lamaran" id="suratLamaranId">
+                <p class="font-bold text-sky-900 text-xs"><i class="fa-solid fa-file-signature mr-1"></i> Surat Balasan Ijin Prakerin</p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-700 mb-1">Nomor Surat <span class="text-rose-500">*</span></label>
+                        <input type="text" name="nomor_surat" required maxlength="30" placeholder="mis. 045" oninput="previewNomor()" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-700 mb-1">Tanggal Surat <span class="text-rose-500">*</span></label>
+                        <input type="date" name="tanggal_surat" required oninput="previewNomor()" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
+                    </div>
+                    <p class="sm:col-span-2 text-[11px] text-sky-900">No. di surat: <strong id="previewNomor" class="font-mono"></strong></p>
+
+                    <div class="sm:col-span-2">
+                        <label class="block text-[11px] font-semibold text-slate-700 mb-1">Ditujukan kepada (Bapak/Ibu ...) <span class="text-rose-500">*</span></label>
+                        <input type="text" name="ditujukan_kepada" required maxlength="150" placeholder="mis. Kaprodi Teknik Informatika Universitas Tidar" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-700 mb-1">Tanggal Pengajuan dari Kampus/Sekolah <span class="text-rose-500">*</span></label>
+                        <input type="date" name="tgl_pengajuan" required class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-700 mb-1">Media Pengajuan (melalui Surat ...) <span class="text-rose-500">*</span></label>
+                        <input type="text" name="media_pengajuan" required maxlength="100" list="daftarMediaPengajuan" placeholder="mis. Elektronik (Email)" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
+                        <datalist id="daftarMediaPengajuan">
+                            <option value="Elektronik (Email)">
+                            <option value="Elektronik (Portal Lowongan)">
+                            <option value="Resmi">
+                        </datalist>
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-700 mb-1">Pelaksanaan Mulai <span class="text-rose-500">*</span></label>
+                        <input type="date" name="tgl_mulai" required class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-700 mb-1">Pelaksanaan Selesai <span class="text-rose-500">*</span></label>
+                        <input type="date" name="tgl_selesai" required class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-[11px] font-semibold text-slate-700 mb-1">Tanggal Induction / Training Introduction (pukul {{ config('prakerin.surat_balasan.jam_induction') }} WIB) <span class="text-rose-500">*</span></label>
+                        <input type="date" name="tgl_induction" required class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
+                    </div>
+                </div>
+
+                <p class="text-[11px] text-sky-900 leading-relaxed">
+                    Nama peserta, NIS/NIM, program studi, dan asal kampus/sekolah diambil otomatis dari data lamaran.
+                    Penandatangan: {{ config('prakerin.surat_balasan.penandatangan') }}, {{ config('prakerin.surat_balasan.jabatan') }}.
+                </p>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="tampilPanel(null)" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-white transition">Batal</button>
+                    <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 transition">Simpan Surat Balasan</button>
+                </div>
+            </form>
         </div>
 
         <div id="footerAksi" class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end space-x-3">
             <button type="button" onclick="closeApplicantModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-200 transition">Tutup</button>
+            <a id="btnSuratPdf" href="#" target="_blank" rel="noopener" class="hidden px-4 py-2 rounded-xl text-xs font-bold text-slate-700 bg-white border border-slate-300 hover:bg-slate-100 transition items-center gap-1">
+                <i class="fa-solid fa-file-pdf text-rose-500"></i> Lihat PDF Surat
+            </a>
+            <button id="btnSurat" type="button" onclick="tampilPanel('surat')" class="hidden px-5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-brand-blue to-brand-purpleBlue transition items-center gap-1 shadow-sm">
+                <i class="fa-solid fa-file-signature"></i> <span id="btnSuratLabel">Buat Surat Balasan</span>
+            </button>
             <button id="btnTolak" type="button" onclick="tampilPanel('tolak')" class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition flex items-center gap-1">
                 <i class="fa-solid fa-xmark"></i> Tolak
             </button>
@@ -217,10 +289,21 @@
         return '<a href="' + url + '" target="_blank" rel="noopener" class="text-brand-blue font-bold hover:underline">' + label + '</a>';
     }
 
+    const PANEL = { terima: 'panelTerima', tolak: 'panelTolak', surat: 'panelSurat' };
+    const ROMAWI = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+    const KODE_NOMOR = @json(config('prakerin.surat_balasan.kode_nomor'));
+
     function tampilPanel(nama) {
-        $('panelTerima').classList.toggle('hidden', nama !== 'terima');
-        $('panelTolak').classList.toggle('hidden', nama !== 'tolak');
-        if (nama) $(nama === 'terima' ? 'panelTerima' : 'panelTolak').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        Object.entries(PANEL).forEach(([k, id]) => $(id).classList.toggle('hidden', k !== nama));
+        if (nama) $(PANEL[nama]).scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Pratinjau nomor surat: <nomor>/PRAKERIN/HCD/MAJ/<bulan romawi>/<tahun>
+    function previewNomor() {
+        const f = $('panelSurat').elements;
+        const tgl = (f.tanggal_surat.value || '').split('-');
+        const bulan = ROMAWI[parseInt(tgl[1], 10)] || '..';
+        $('previewNomor').textContent = (f.nomor_surat.value || '...') + '/' + KODE_NOMOR + '/' + bulan + '/' + (tgl[0] || '....');
     }
 
     function openDetailModal(id) {
@@ -250,6 +333,19 @@
 
         const menunggu = app.status === 'menunggu';
         $('footerAksi').querySelectorAll('#btnTolak, #btnTerima').forEach(b => b.classList.toggle('hidden', !menunggu));
+
+        // Surat balasan: hanya untuk lamaran yang sudah diterima
+        const diterima = app.status === 'diterima';
+        $('btnSurat').classList.toggle('hidden', !diterima);
+        $('btnSuratLabel').textContent = app.adaSurat ? 'Ubah Surat Balasan' : 'Buat Surat Balasan';
+        $('btnSuratPdf').classList.toggle('hidden', !(diterima && app.suratPdf));
+        if (app.suratPdf) $('btnSuratPdf').href = app.suratPdf;
+        $('mSuratWrap').classList.toggle('hidden', !diterima);
+        $('mSurat').textContent = app.adaSurat ? 'Sudah dibuat' : 'Belum dibuat';
+        $('panelSurat').action = app.suratUrl;
+        $('suratLamaranId').value = app.id;
+        Object.entries(app.surat).forEach(([k, v]) => { if ($('panelSurat').elements[k]) $('panelSurat').elements[k].value = v; });
+        previewNomor();
         $('blokKeputusan').classList.toggle('hidden', menunggu);
         if (!menunggu) {
             $('mStatus').textContent = app.status === 'diterima' ? 'Diterima' : 'Ditolak';
@@ -273,6 +369,21 @@
     document.addEventListener('DOMContentLoaded', () => {
         @if (request()->filled('buka'))
             openDetailModal({{ (int) request('buka') }});
+            @if (request()->boolean('surat'))
+                // Baru saja diterima: langsung tampilkan form surat balasan
+                tampilPanel('surat');
+            @endif
+        @endif
+
+        @if ($errors->any() && old('_surat_lamaran'))
+            // Validasi form surat gagal: buka lagi modalnya dengan isian yang tadi
+            openDetailModal({{ (int) old('_surat_lamaran') }});
+            Object.entries(@json(old())).forEach(([k, v]) => {
+                const el = $('panelSurat').elements[k];
+                if (el && k !== '_token' && k !== '_surat_lamaran') el.value = v;
+            });
+            previewNomor();
+            tampilPanel('surat');
         @endif
     });
 </script>

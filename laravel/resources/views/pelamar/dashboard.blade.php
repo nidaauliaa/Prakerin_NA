@@ -1,0 +1,208 @@
+@extends('layouts.public')
+
+@section('title', 'Dashboard Peserta - PT Mekar Armada Jaya')
+
+@section('content')
+@php
+    $fotoUrl = $ada['foto'] ? route('pelamar.foto', ['v' => $pelamar->updated_at?->timestamp]) : null;
+    $smk     = $profil?->tipe_magang === 'smk';
+
+    $badge = fn (string $s) => match ($s) {
+        'diterima' => ['bg-emerald-100 text-emerald-800', 'Diterima'],
+        'ditolak'  => ['bg-rose-100 text-rose-800', 'Ditolak'],
+        default    => ['bg-amber-100 text-amber-800', 'Menunggu'],
+    };
+
+    // Bulan dalam bahasa Indonesia (APP_LOCALE di .env masih 'en')
+    $tgl = fn ($d, string $f = 'j M Y') => $d->copy()->locale('id')->translatedFormat($f);
+
+    $baris = fn (string $label, ?string $nilai) => [$label, filled($nilai) ? $nilai : '-'];
+@endphp
+
+<section class="py-10 bg-slate-100 min-h-[75vh]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+
+        <!-- Judul -->
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Dashboard Peserta</h1>
+            <p class="text-sm text-slate-500 mt-1">Halo, {{ $pelamar->nama_depan }}. Pantau profil, riwayat lamaran, dan surat balasan prakerin Anda di sini.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+
+            <!-- ========== PROFIL ========== -->
+            <div class="lg:col-span-1 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-6 bg-slate-50 border-b border-slate-200 flex items-center gap-4">
+                    <div class="w-20 h-20 shrink-0 rounded-2xl overflow-hidden bg-slate-200 ring-2 ring-white shadow">
+                        @if ($fotoUrl)
+                            <img src="{{ $fotoUrl }}" alt="Foto profil" class="w-full h-full object-cover">
+                        @else
+                            <span class="w-full h-full flex items-center justify-center bg-gradient-to-tr from-brand-blue to-indigo-500 text-white text-2xl font-bold">{{ $pelamar->inisial }}</span>
+                        @endif
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Profil</p>
+                        <h2 class="text-lg font-bold text-slate-900 leading-snug break-words">{{ $profil?->nama ?? $pelamar->nama }}</h2>
+                        <p class="text-xs text-slate-500 break-all">{{ $pelamar->email }}</p>
+                        @if ($profil)
+                            <span class="inline-block mt-1.5 px-2 py-0.5 rounded text-[10px] font-extrabold uppercase {{ $smk ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-brand-blue' }}">
+                                {{ $smk ? 'Anak SMK' : 'Mahasiswa (D3/S1)' }}
+                            </span>
+                        @endif
+                    </div>
+                </div>
+
+                @if ($profil)
+                    <dl class="p-6 space-y-3 text-xs">
+                        @foreach ([
+                            $baris('No. WhatsApp', $profil->no_wa),
+                            $baris('Alamat', $profil->alamat),
+                            $baris($smk ? 'Asal Sekolah' : 'Asal Kampus', $profil->asal_sekolah),
+                            $baris('Jurusan', $profil->jurusan),
+                            $baris('NIS / NIM', $profil->nis_nim),
+                            $baris($smk ? 'Guru Pembimbing' : 'Dosen Pembimbing', $profil->pembimbing),
+                            $baris($smk ? 'No. HP Pembimbing' : 'No. WA Dosen Pembimbing', $profil->no_wa_pembimbing),
+                        ] as [$label, $nilai])
+                            <div>
+                                <dt class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{{ $label }}</dt>
+                                <dd class="text-slate-800 font-semibold break-words">{{ $nilai }}</dd>
+                            </div>
+                        @endforeach
+                    </dl>
+
+                    <div class="px-6 pb-6 space-y-2 text-xs">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Berkas yang diunggah</p>
+                        @foreach ([
+                            ['cv', 'CV / Portofolio', 'fa-file-pdf text-rose-500'],
+                            ['surat', 'Surat Pengajuan Sekolah / Kampus', 'fa-file-pdf text-rose-500'],
+                            ['foto', 'Foto Pas', 'fa-image text-brand-blue'],
+                        ] as [$kode, $nama, $ikon])
+                            <div class="flex items-center justify-between gap-3 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                                <span class="text-slate-600"><i class="fa-solid {{ $ikon }} mr-2"></i>{{ $nama }}</span>
+                                @if ($ada[$kode])
+                                    <a href="{{ route('pelamar.berkas', $kode) }}" target="_blank" rel="noopener" class="font-bold text-brand-blue hover:underline whitespace-nowrap">Lihat</a>
+                                @else
+                                    <span class="text-slate-400 italic whitespace-nowrap">Tidak ada</span>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="p-6 text-xs text-slate-500 leading-relaxed">
+                        <p>Data profil Anda terisi otomatis dari formulir saat mengirim lamaran pertama.</p>
+                        <a href="{{ route('beranda') }}#lowongan" class="inline-block mt-3 px-4 py-2 rounded-xl bg-slate-900 hover:bg-brand-blue text-white font-bold transition">Lihat Lowongan</a>
+                    </div>
+                @endif
+            </div>
+
+            <!-- ========== NOTIFIKASI + RIWAYAT ========== -->
+            <div class="lg:col-span-2 space-y-6">
+
+                <!-- Notifikasi -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                    <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2 mb-4">
+                        <i class="fa-solid fa-bell text-brand-blue"></i> Notifikasi
+                        @if ($diterima->isNotEmpty())
+                            <span class="bg-emerald-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">{{ $diterima->count() }}</span>
+                        @endif
+                    </h2>
+
+                    @forelse ($diterima as $l)
+                        <div class="mb-3 last:mb-0 rounded-xl border border-emerald-200 bg-emerald-50 p-4 flex items-start gap-3">
+                            <div class="w-10 h-10 shrink-0 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                                <i class="fa-solid fa-champagne-glasses"></i>
+                            </div>
+                            <div class="text-xs text-emerald-900 leading-relaxed flex-1">
+                                <p class="font-extrabold text-sm">Selamat, {{ $pelamar->nama_depan }}! Pengajuan prakerin Anda disetujui.</p>
+                                <p class="mt-0.5">
+                                    Lamaran untuk posisi <strong>{{ $l->lowongan?->judul ?? '-' }}</strong> telah disetujui HRD PT Mekar Armada Jaya.
+                                    Periode magang: <strong>{{ $tgl($l->tgl_mulai, 'j M Y') }}</strong> s/d <strong>{{ $tgl($l->tgl_selesai, 'j M Y') }}</strong>.
+                                </p>
+
+                                @if ($l->suratBalasan)
+                                    <a href="{{ route('pelamar.surat', $l) }}" class="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition shadow-sm">
+                                        <i class="fa-solid fa-file-arrow-down"></i> Unduh Surat Balasan Ijin Prakerin (PDF)
+                                    </a>
+                                @else
+                                    <p class="mt-2 text-emerald-800/80 italic"><i class="fa-regular fa-clock mr-1"></i> Surat balasan ijin prakerin sedang disiapkan HRD. Tombol unduh akan muncul di sini.</p>
+                                @endif
+
+                                <p class="mt-3 text-[11px] text-emerald-800/80">
+                                    Presensi harian dilakukan lewat <a href="{{ route('login') }}" class="font-bold underline">halaman Login Presensi</a>
+                                    @if ($l->nis_nim) (gunakan NIS/NIM <strong>{{ $l->nis_nim }}</strong> sebagai username)@endif.
+                                </p>
+                            </div>
+                        </div>
+                    @empty
+                        <p class="text-xs text-slate-400 italic"><i class="fa-regular fa-bell-slash mr-1"></i> Belum ada notifikasi. Kabar persetujuan dari HRD akan muncul di sini.</p>
+                    @endforelse
+                </div>
+
+                <!-- Riwayat magang -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                        <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-clock-rotate-left text-brand-blue"></i> Riwayat Magang
+                        </h2>
+                        <span class="text-[11px] font-semibold text-slate-500">
+                            Lamaran terkirim: <strong class="text-slate-800">{{ $riwayat->count() }}</strong> dari {{ \App\Models\Pelamar::MAKS_LAMARAN }}
+                        </span>
+                    </div>
+
+                    <div class="space-y-3">
+                        @forelse ($riwayat as $l)
+                            @php [$kelas, $label] = $badge($l->status); @endphp
+                            <div class="rounded-xl border border-slate-200 p-4">
+                                <div class="flex flex-wrap items-start justify-between gap-2">
+                                    <div>
+                                        <h3 class="text-sm font-bold text-slate-900">{{ $l->lowongan?->judul ?? '-' }}</h3>
+                                        <p class="text-[11px] text-slate-400 mt-0.5">Kode: <strong class="text-slate-600">{{ $l->kode }}</strong> &middot; Dikirim {{ $tgl($l->created_at, 'j M Y') }}</p>
+                                    </div>
+                                    <span class="px-2.5 py-1 rounded-md text-[11px] font-bold {{ $kelas }}">{{ $label }}</span>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-3 mt-3 text-xs">
+                                    <div>
+                                        <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Periode diajukan</span>
+                                        <span class="font-semibold text-slate-700">{{ $tgl($l->tgl_mulai, 'j M Y') }} s/d {{ $tgl($l->tgl_selesai, 'j M Y') }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Keputusan HRD</span>
+                                        <span class="font-semibold text-slate-700">{{ $l->diputuskan_pada ? $tgl($l->diputuskan_pada, 'j M Y') : 'Belum diputuskan' }}</span>
+                                    </div>
+                                </div>
+
+                                @if ($l->status === 'ditolak' && $l->catatan_admin)
+                                    <p class="mt-3 text-xs bg-rose-50 border border-rose-100 text-rose-800 rounded-lg px-3 py-2"><strong>Catatan HRD:</strong> {{ $l->catatan_admin }}</p>
+                                @endif
+
+                                @if ($l->status === 'diterima')
+                                    <div class="mt-3">
+                                        @if ($l->suratBalasan)
+                                            <a href="{{ route('pelamar.surat', $l) }}" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-brand-blue text-white text-xs font-bold transition">
+                                                <i class="fa-solid fa-file-arrow-down"></i> Unduh Surat Balasan (PDF)
+                                            </a>
+                                        @else
+                                            <span class="text-[11px] text-slate-400 italic"><i class="fa-regular fa-clock mr-1"></i> Surat balasan sedang disiapkan HRD</span>
+                                        @endif
+                                    </div>
+                                @endif
+                            </div>
+                        @empty
+                            <p class="text-xs text-slate-400 italic">Belum ada lamaran. Pilih posisi di halaman lowongan untuk mulai mendaftar.</p>
+                        @endforelse
+                    </div>
+
+                    @if ($sisa > 0)
+                        <a href="{{ route('beranda') }}#lowongan" class="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-xl border border-brand-blue text-brand-blue hover:bg-blue-50 text-xs font-bold transition">
+                            <i class="fa-solid fa-plus"></i> Lamar posisi lain (sisa {{ $sisa }})
+                        </a>
+                    @else
+                        <p class="mt-4 text-[11px] text-slate-400">Batas maksimal {{ \App\Models\Pelamar::MAKS_LAMARAN }} lamaran per pelamar sudah tercapai.</p>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+@endsection

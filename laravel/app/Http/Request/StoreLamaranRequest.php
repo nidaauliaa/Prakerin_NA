@@ -69,8 +69,8 @@ class StoreLamaranRequest extends FormRequest
             'pembimbing'       => [$isSmk ? 'required' : 'nullable', 'string', 'max:150'],
             'no_wa_pembimbing' => [$isSmk ? 'required' : 'nullable', 'regex:' . self::HP],
 
-            // Opsional untuk keduanya
-            'cv'               => ['nullable', 'file', 'mimes:pdf', 'max:5120'],
+            // CV / portofolio: WAJIB untuk Diploma/Sarjana, opsional untuk SMK
+            'cv'               => [$isSmk ? 'nullable' : 'required', 'file', 'mimes:pdf', 'max:5120'],
             'surat_permohonan' => ['nullable', 'file', 'mimes:pdf', 'max:5120'],
         ];
     }
@@ -92,6 +92,7 @@ class StoreLamaranRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'cv.required'            => 'CV / portofolio wajib diunggah (PDF) untuk pelamar Diploma/Sarjana.',
             'no_wa.regex'            => 'Format no. WhatsApp tidak valid (contoh: 081234567890).',
             'no_wa_pembimbing.regex' => 'Format no. HP pembimbing tidak valid (contoh: 081234567890).',
         ];

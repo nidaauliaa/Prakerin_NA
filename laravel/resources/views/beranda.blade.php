@@ -122,7 +122,7 @@
     <!-- DAFTAR LOWONGAN AKTIF (Gambar 3 - Disesuaikan) -->
     <section id="lowongan" class="py-20 bg-slate-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
+            
             <!-- Section Header & Filter -->
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div class="flex items-center space-x-3">
@@ -148,7 +148,7 @@
             </div>
 
             <!-- Job Cards Grid -->
-            <div id="jobGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div id="jobGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <!-- Rendered dynamically by JS -->
             </div>
         </div>
@@ -298,27 +298,27 @@
                 const badgeBg = isMahasiswa ? 'bg-blue-100 text-brand-blue' : 'bg-amber-100 text-amber-700';
 
                 const cardHtml = `
-                    <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+                    <div class="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-sm hover:shadow-md transition flex flex-col justify-between">
                         <div>
                             <!-- Header Card -->
-                            <div class="flex items-center justify-between mb-3">
+                            <div class="flex flex-wrap items-center justify-between gap-1.5 mb-3">
                                 <span class="px-2.5 py-1 rounded-md text-[11px] font-bold ${badgeBg}">
                                     ${job.categoryLabel}
                                 </span>
                                 <span class="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200/50">
-                                    Max Kuota: ${job.maxQuota} Orang
+                                    Kuota: ${job.maxQuota} Orang
                                 </span>
                             </div>
 
                             <!-- Title -->
-                            <h3 class="text-lg font-bold text-slate-900 mb-1">${job.title}</h3>
+                            <h3 class="text-base font-bold text-slate-900 mb-1 leading-snug">${job.title}</h3>
                             <p class="text-xs text-slate-500 mb-3"><i class="fa-solid fa-location-dot text-rose-500 mr-1"></i> Kota Alokasi: <strong>Magelang</strong> (PT MAJ)</p>
 
                             <!-- Description -->
                             <p class="text-xs text-slate-600 leading-relaxed mb-4 line-clamp-3">${job.description}</p>
 
                             <!-- Qualification Tag -->
-                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 mb-4">
+                            <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100 mb-4">
                                 <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">JURUSAN:</span>
                                 <span class="text-xs font-semibold text-slate-700">${job.major}</span>
                             </div>
@@ -363,7 +363,7 @@
 
             document.getElementById('modalTitle').innerText = selectedJob.title;
             document.getElementById('modalCategory').innerText = selectedJob.categoryLabel;
-            document.getElementById('modalCategory').className = selectedJob.category === 'mahasiswa'
+            document.getElementById('modalCategory').className = selectedJob.category === 'mahasiswa' 
                 ? 'inline-block px-2.5 py-0.5 rounded text-[11px] font-extrabold uppercase mb-1 bg-blue-100 text-brand-blue'
                 : 'inline-block px-2.5 py-0.5 rounded text-[11px] font-extrabold uppercase mb-1 bg-amber-100 text-amber-700';
 
@@ -393,7 +393,7 @@
             document.getElementById('startDate').value = '';
             document.getElementById('endDate').value = '';
             document.getElementById('validationAlert').className = 'hidden';
-
+            
             const submitBtn = document.getElementById('submitBtn');
             submitBtn.disabled = true;
             submitBtn.className = "px-5 py-2 rounded-xl text-xs font-bold text-white bg-slate-300 cursor-not-allowed transition";
@@ -452,7 +452,7 @@
             let currentDate = new Date(start);
             while (currentDate <= end) {
                 let countForDay = 0;
-
+                
                 // Count how many existing bookings cover this currentDate
                 selectedJob.bookedRanges.forEach(b => {
                     const bStart = new Date(b.start);
@@ -494,7 +494,7 @@
                 <strong>PERIODE TERSEDIA!</strong><br>
                 Durasi magang: <strong>${diffDays} hari (~${Math.round(diffDays/30)} Bulan)</strong>. Tanggal yang Anda pilih aman dan kuota masih tersedia.
             `;
-
+            
             enableSubmit();
         }
 
