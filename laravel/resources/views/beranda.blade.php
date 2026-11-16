@@ -9,8 +9,10 @@
         <div class="text-xs text-slate-600 leading-relaxed flex-1">
             <p class="font-bold text-slate-900 text-sm">Lamaran berhasil dikirim!</p>
             Posisi <strong>{{ session('lamaran_berhasil.posisi') }}</strong>.<br>
-            Kode lamaran Anda: <strong class="text-brand-blue">{{ session('lamaran_berhasil.kode') }}</strong><br>
-            Simpan kode ini. Tim HRD akan menghubungi lewat email / WhatsApp.
+            {{-- Kode lamaran Anda: <strong class="text-brand-blue">{{ session('lamaran_berhasil.kode') }}</strong><br> --}}
+            Periode: <strong>{{ session('lamaran_berhasil.mulai') }} s/d {{ session('lamaran_berhasil.selesai') }}</strong>.<br>
+            Cek Dashboard Anda untuk melihat update lamaran.
+            Surat Keterangan Ijin Prakerin dapat diunduh di Dashboard Peserta setelah lamaran disetujui oleh Admin PT Mekar Armada Jaya.
         </div>
         <button onclick="document.getElementById('toastSukses').remove()" class="text-slate-400 hover:text-slate-600">
             <i class="fa-solid fa-xmark"></i>

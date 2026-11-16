@@ -49,7 +49,7 @@
             <!-- Brand Logo -->
             <div class="flex items-center space-x-3">
                 <div class="flex flex-col">
-                    <span class="text-2xl font-black tracking-tight text-brand-red leading-none">new <span class="text-brand-blue">armada</span> group</span>
+                    <span class="text-2xl font-black tracking-tight text-brand-red leading-none">new <span class="text-brand-blue">armada</span></span>
                     <span class="text-[10px] font-bold text-slate-500 tracking-widest uppercase mt-1">PT Mekar Armada Jaya</span>
                 </div>
             </div>
@@ -140,25 +140,25 @@
                 <!-- Brand Info -->
                 <div class="md:col-span-4 space-y-3">
                     <div class="flex flex-col">
-                        <span class="text-2xl font-black text-brand-red leading-none">new <span class="text-brand-blue">armada</span> group</span>
+                        <span class="text-2xl font-black text-brand-red leading-none">new <span class="text-brand-blue">armada</span></span>
                     </div>
                     <p class="text-sm text-slate-400 leading-relaxed">
-                        Bagian dari PT Mekar Armada Investama — membangun masa depan industri manufaktur Indonesia.
+                        Mekar Armada Jaya — mempelopori inovasi industri karoseri dan komponen otomotif Indonesia.
                     </p>
                 </div>
 
                 <!-- Kontak -->
                 <div class="md:col-span-3 space-y-2">
                     <h4 class="text-white font-bold text-sm uppercase tracking-wider">Kontak</h4>
-                    <p class="text-sm text-slate-400">(024) 123-45678</p>
-                    <p class="text-sm text-slate-400">magang@newarmadagroup.co.id</p>
+                    <p class="text-sm text-slate-400">+6281217609906</p>
+                    <p class="text-sm text-slate-400">prakerin.maj@gmail.com</p>
                 </div>
 
                 <!-- Alamat -->
                 <div class="md:col-span-3 space-y-2">
                     <h4 class="text-white font-bold text-sm uppercase tracking-wider">Alamat</h4>
                     <p class="text-sm text-slate-400">
-                        Jl. Raya Semarang – Kendal KM 12, Ungaran, Kabupaten Semarang, Jawa Tengah, Indonesia
+                        Jl. Mayjen Bambang Soegeng No.7, Kedungdowo, Mertoyudan, Kec. Mertoyudan, Kabupaten Magelang, Jawa Tengah 56172.
                     </p>
                 </div>
 
@@ -174,7 +174,7 @@
             </div>
 
             <div class="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
-                <p>&copy; 2026 New Armada Group. Seluruh hak cipta dilindungi.</p>
+                <p>&copy; 2026 New Armada. Seluruh hak cipta dilindungi.</p>
                 <p>Program Magang & Prakerin Industri</p>
             </div>
         </div>

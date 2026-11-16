@@ -38,7 +38,7 @@
             <a href="{{ route('admin.dashboard') }}" class="flex items-center space-x-3">
                 <div class="flex flex-col">
                     <span class="text-xl sm:text-2xl font-black tracking-tight text-brand-red leading-none">
-                        new <span class="text-brand-blue">armada</span> <span class="text-slate-900 font-extrabold">group</span>
+                        new <span class="text-brand-blue">armada</span>
                     </span>
                     <span class="text-[10px] font-extrabold text-slate-400 tracking-wider uppercase mt-1">PT MEKAR ARMADA JAYA</span>
                 </div>
