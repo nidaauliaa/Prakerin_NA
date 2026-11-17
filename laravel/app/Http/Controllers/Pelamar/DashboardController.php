@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Pelamar;
 
 use App\Http\Controllers\Controller;
 use App\Models\Lamaran;
+use App\Models\SuratKeterangan;
 use App\Services\SuratBalasanPdf;
+use App\Services\SuratKeteranganPdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -24,21 +26,27 @@ class DashboardController extends Controller
         $pelamar = Auth::guard('pelamar')->user();
 
         $riwayat = $pelamar->lamaran()
-            ->with(['lowongan' => fn ($q) => $q->withTrashed(), 'suratBalasan'])
+            ->with(['lowongan' => fn ($q) => $q->withTrashed(), 'suratBalasan', 'dataMagang.suratKeterangan'])
             ->latest('id')
             ->get();
+
+        $diterima = $riwayat->where('status', 'diterima')->values();
 
         return view('pelamar.dashboard', [
             'pelamar'  => $pelamar,
             'riwayat'  => $riwayat,
             'profil'   => $riwayat->first(),                                   // data diri = lamaran terbaru
-            'diterima' => $riwayat->where('status', 'diterima')->values(),     // bahan notifikasi
+            'diterima' => $diterima,                                           // bahan notifikasi
             'ada'      => [                                                    // berkas mana yang pernah diunggah
                 'cv'    => $riwayat->contains(fn ($l) => (bool) $l->cv_path),
                 'surat' => $riwayat->contains(fn ($l) => (bool) $l->surat_permohonan_path),
                 'foto'  => (bool) $pelamar->fotoPath(),
             ],
             'sisa'     => max(0, \App\Models\Pelamar::MAKS_LAMARAN - $riwayat->count()),
+            // Tab "Surat Keterangan": lamaran diterima beserta surat keterangan (bila sudah dibuat HRD)
+            'keterangan' => $diterima,
+            'keteranganTerbit' => $diterima->filter(fn ($l) => $l->dataMagang?->suratKeterangan?->terbit())->count(),
+            'cfgKeterangan' => config('prakerin.surat_keterangan'),
         ]);
     }
 
@@ -101,5 +109,17 @@ class DashboardController extends Controller
         abort_unless($lamaran->status === 'diterima' && $lamaran->suratBalasan, 404);
 
         return SuratBalasanPdf::respons($lamaran->suratBalasan);
+    }
+
+    /** Unduh Surat Keterangan selesai prakerin (PDF) -- hanya milik sendiri dan sudah diterbitkan HRD. */
+    public function suratKeterangan(SuratKeterangan $surat)
+    {
+        $milikSendiri = Lamaran::where('pelamar_id', Auth::guard('pelamar')->id())
+            ->where('data_magang_id', $surat->data_magang_id)
+            ->exists();
+
+        abort_unless($milikSendiri && $surat->terbit() && $surat->lengkap(), 404);
+
+        return SuratKeteranganPdf::respons($surat);
     }
 }

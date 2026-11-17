@@ -11,6 +11,7 @@
         'dashboard' => request()->routeIs('admin.dashboard'),
         'lamaran'   => request()->routeIs('admin.lamaran.*'),
         'lowongan'  => request()->routeIs('admin.lowongan.*'),
+        'penilaian' => request()->routeIs('admin.penilaian.*', 'admin.surat-keterangan.*'),
     ];
     // Semua halaman absensi (presensi, peserta, arsip, zona, kalender, dst.) = menu "Peserta & Presensi"
     $aktif['peserta'] = request()->routeIs('admin.*') && ! in_array(true, $aktif, true);
@@ -38,7 +39,7 @@
             <a href="{{ route('admin.dashboard') }}" class="flex items-center space-x-3">
                 <div class="flex flex-col">
                     <span class="text-xl sm:text-2xl font-black tracking-tight text-brand-red leading-none">
-                        new <span class="text-brand-blue">armada</span>
+                        new <span class="text-brand-blue">armada</span> <span class="text-slate-900 font-extrabold">group</span>
                     </span>
                     <span class="text-[10px] font-extrabold text-slate-400 tracking-wider uppercase mt-1">PT MEKAR ARMADA JAYA</span>
                 </div>
@@ -61,6 +62,9 @@
             </a>
             <a href="{{ route('admin.lowongan.index') }}" class="{{ $aktif['lowongan'] ? $on : $off }}">
                 <i class="fa-solid fa-briefcase text-xs"></i> Kelola Lowongan
+            </a>
+            <a href="{{ route('admin.penilaian.index') }}" class="{{ $aktif['penilaian'] ? $on : $off }}">
+                <i class="fa-solid fa-clipboard-check text-xs"></i> Penilaian
             </a>
             <a href="{{ route('admin.presensi.index') }}" class="{{ $aktif['peserta'] ? $on : $off }}">
                 <i class="fa-solid fa-users-gear text-xs"></i> Peserta &amp; Presensi
@@ -116,6 +120,7 @@
     <a href="{{ route('admin.dashboard') }}" class="{{ $aktif['dashboard'] ? $mOn : $mOff }}">Dashboard</a>
     <a href="{{ route('admin.lamaran.index') }}" class="{{ $aktif['lamaran'] ? $mOn : $mOff }}">Lamaran{{ $lamaranPending > 0 ? " ($lamaranPending)" : '' }}</a>
     <a href="{{ route('admin.lowongan.index') }}" class="{{ $aktif['lowongan'] ? $mOn : $mOff }}">Lowongan</a>
+    <a href="{{ route('admin.penilaian.index') }}" class="{{ $aktif['penilaian'] ? $mOn : $mOff }}">Penilaian</a>
     <a href="{{ route('admin.presensi.index') }}" class="{{ $aktif['peserta'] ? $mOn : $mOff }}">Peserta &amp; Presensi</a>
 </div>
 

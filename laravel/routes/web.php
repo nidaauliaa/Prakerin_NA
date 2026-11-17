@@ -24,6 +24,9 @@ use App\Http\Controllers\Admin\LokasiCurigaController;
 use App\Http\Controllers\Auth\LupaSandiController;
 use App\Http\Controllers\Admin\ApiTokenController;
 use App\Http\Controllers\BerandaController;
+use App\Http\Controllers\PenilaianPublikController;
+use App\Http\Controllers\Admin\FormPenilaianController;
+use App\Http\Controllers\Admin\SuratKeteranganController;
 use App\Http\Controllers\LamaranController;
 use App\Http\Controllers\Pelamar\AuthController as PelamarAuthController;
 use App\Http\Middleware\WajibLoginPelamar;
@@ -46,6 +49,10 @@ Route::post('/lowongan/{lowongan}/lamar', [LamaranController::class, 'pilih'])
     ->middleware('throttle:10,1')
     ->name('lamaran.pilih');
  
+// Form penilaian (publik, tanpa login): dibuka penilai lewat link yang dibagikan admin
+Route::get('/penilaian/{kode}', [PenilaianPublikController::class, 'tampil'])->name('penilaian.isi');
+Route::post('/penilaian/{kode}', [PenilaianPublikController::class, 'kirim'])->middleware('throttle:10,1')->name('penilaian.kirim');
+
 /*
 |--------------------------------------------------------------------------
 | LOGIN PRAKERIN (pelamar) - terpisah dari login absensi (/login)
@@ -66,6 +73,7 @@ Route::prefix('prakerin')->name('pelamar.')->middleware(WajibLoginPelamar::class
     Route::get('/foto-profil', [PelamarDashboardController::class, 'foto'])->name('foto');
     Route::post('/foto-profil', [PelamarDashboardController::class, 'ubahFoto'])->middleware('throttle:10,1')->name('foto.update');
     Route::get('/lamaran/{lamaran}/surat-balasan', [PelamarDashboardController::class, 'suratBalasan'])->name('surat');
+    Route::get('/surat-keterangan/{surat}', [PelamarDashboardController::class, 'suratKeterangan'])->name('keterangan');
 });
 
 // Langkah 2 & 3: lengkapi data + kirim lamaran (wajib login pelamar)
@@ -248,6 +256,25 @@ Route::prefix('admin')
         Route::post('/lamaran/{lamaran}/surat-balasan', [SuratBalasanController::class, 'simpan'])->name('lamaran.surat.simpan');
         Route::get('/lamaran/{lamaran}/surat-balasan/pdf', [SuratBalasanController::class, 'pdf'])->name('lamaran.surat.pdf');
         
+        // Penilaian: buat form (link dibagikan ke penilai) + lihat hasil isian
+        Route::get('/penilaian', [FormPenilaianController::class, 'index'])->name('penilaian.index');
+        Route::get('/penilaian/buat', [FormPenilaianController::class, 'create'])->name('penilaian.create');
+        Route::post('/penilaian', [FormPenilaianController::class, 'store'])->name('penilaian.store');
+        Route::delete('/penilaian/hasil/{penilaian}', [FormPenilaianController::class, 'hapusHasil'])->name('penilaian.hasil.destroy');
+        Route::get('/penilaian/{form}', [FormPenilaianController::class, 'show'])->name('penilaian.show');
+        Route::get('/penilaian/{form}/edit', [FormPenilaianController::class, 'edit'])->name('penilaian.edit');
+        Route::put('/penilaian/{form}', [FormPenilaianController::class, 'update'])->name('penilaian.update');
+        Route::post('/penilaian/{form}/status', [FormPenilaianController::class, 'status'])->name('penilaian.status');
+        Route::delete('/penilaian/{form}', [FormPenilaianController::class, 'destroy'])->name('penilaian.destroy');
+
+        // Surat Keterangan selesai prakerin (nilai dari penilaian, diterbitkan HRD)
+        Route::get('/surat-keterangan', [SuratKeteranganController::class, 'index'])->name('surat-keterangan.index');
+        Route::post('/surat-keterangan/{surat}', [SuratKeteranganController::class, 'simpan'])->name('surat-keterangan.simpan');
+        Route::post('/surat-keterangan/{surat}/sinkron', [SuratKeteranganController::class, 'sinkron'])->name('surat-keterangan.sinkron');
+        Route::post('/surat-keterangan/{surat}/terbitkan', [SuratKeteranganController::class, 'terbitkan'])->name('surat-keterangan.terbitkan');
+        Route::post('/surat-keterangan/{surat}/tarik', [SuratKeteranganController::class, 'tarik'])->name('surat-keterangan.tarik');
+        Route::get('/surat-keterangan/{surat}/pdf', [SuratKeteranganController::class, 'pdf'])->name('surat-keterangan.pdf');
+
         // Kelola Lowongan
         Route::get('/lowongan', [LowonganAdminController::class, 'index'])->name('lowongan.index');
         Route::post('/lowongan', [LowonganAdminController::class, 'store'])->name('lowongan.store');

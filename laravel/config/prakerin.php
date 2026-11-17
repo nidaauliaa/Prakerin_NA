@@ -106,4 +106,26 @@ return [
         'jam_induction' => '09.00',
         'kop'           => true,                    // false = tanpa baris nama perusahaan di atas surat (kertas sudah berkop)
     ],
+
+    // ---- Penilaian prakerin & Surat Keterangan ----
+    'penilaian' => [
+        // [batas bawah nilai, predikat]. Nilai akhir = rata-rata berbobot semua butir (0-100).
+        'predikat' => [
+            [90, 'Sangat Baik'],
+            [80, 'Baik'],
+            [70, 'Cukup'],
+            [0,  'Kurang'],
+        ],
+    ],
+
+    // Surat Keterangan selesai prakerin (PDF yang diunduh peserta dari Dashboard Peserta)
+    'surat_keterangan' => [
+        'kota'          => 'Magelang',
+        'kode_nomor'    => 'HCD/MAJ/PRAKERIN',      // No.: <nomor>/HCD/MAJ/PRAKERIN/<bulan romawi>/<tahun>
+        'perusahaan'    => 'PT MEKAR ARMADA JAYA',
+        'penandatangan' => 'Bambang Sulistiyo',
+        'jabatan'       => 'HC Dev & SHE Manager',
+        'kop'           => true,                    // false = tanpa baris nama perusahaan (kertas sudah berkop)
+    ],
+
 ];

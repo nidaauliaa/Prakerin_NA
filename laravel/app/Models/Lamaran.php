@@ -53,6 +53,11 @@ class Lamaran extends Model
         return $this->belongsTo(Pelamar::class, 'pelamar_id');
     }
 
+    public function dataMagang(): BelongsTo
+    {
+        return $this->belongsTo(DataMagang::class, 'data_magang_id');
+    }
+
     public function suratBalasan(): HasOne
     {
         return $this->hasOne(SuratBalasan::class, 'lamaran_id');

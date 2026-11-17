@@ -28,6 +28,20 @@
             <p class="text-sm text-slate-500 mt-1">Halo, {{ $pelamar->nama_depan }}. Pantau profil, riwayat lamaran, dan surat balasan prakerin Anda di sini.</p>
         </div>
 
+        <!-- Tab -->
+        <div class="flex gap-2 border-b border-slate-200 text-sm font-bold" role="tablist">
+            <button type="button" data-tab="ringkasan" role="tab" class="tab-btn px-4 py-2.5 -mb-px border-b-2 flex items-center gap-2">
+                <i class="fa-solid fa-user"></i> Ringkasan
+            </button>
+            <button type="button" data-tab="surat-keterangan" role="tab" class="tab-btn px-4 py-2.5 -mb-px border-b-2 flex items-center gap-2">
+                <i class="fa-solid fa-file-signature"></i> Surat Keterangan
+                @if ($keteranganTerbit > 0)
+                    <span class="bg-emerald-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">{{ $keteranganTerbit }}</span>
+                @endif
+            </button>
+        </div>
+
+        <div id="tab-ringkasan" class="tab-isi">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
             <!-- ========== PROFIL ========== -->
@@ -127,6 +141,12 @@
                                     <p class="mt-2 text-emerald-800/80 italic"><i class="fa-regular fa-clock mr-1"></i> Surat balasan ijin prakerin sedang disiapkan HRD. Tombol unduh akan muncul di sini.</p>
                                 @endif
 
+                                @if ($l->dataMagang?->suratKeterangan?->terbit())
+                                    <button type="button" data-buka-tab="surat-keterangan" class="inline-flex items-center gap-2 mt-3 ml-0 sm:ml-2 px-4 py-2 rounded-xl bg-white border border-emerald-300 text-emerald-800 hover:bg-emerald-100 font-bold transition shadow-sm">
+                                        <i class="fa-solid fa-file-signature"></i> Surat Keterangan Prakerin sudah terbit
+                                    </button>
+                                @endif
+
                                 <p class="mt-3 text-[11px] text-emerald-800/80">
                                     Presensi harian dilakukan lewat <a href="{{ route('login') }}" class="font-bold underline">halaman Login Presensi</a>
                                     @if ($l->nis_nim) (gunakan NIS/NIM <strong>{{ $l->nis_nim }}</strong> sebagai username)@endif.
@@ -203,6 +223,91 @@
                 </div>
             </div>
         </div>
+        </div><!-- /tab-ringkasan -->
+
+        <!-- ========== TAB SURAT KETERANGAN ========== -->
+        <div id="tab-surat-keterangan" class="tab-isi hidden space-y-6">
+            @php $tanggalSurat = fn ($d) => \App\Models\SuratKeterangan::tanggalIndonesia($d); @endphp
+
+            @forelse ($keterangan as $l)
+                @php
+                    $sk = $l->dataMagang?->suratKeterangan;
+                    $sk?->setRelation('dataMagang', $l->dataMagang);   // hindari query ulang di pratinjau
+                    $siap = $sk && $sk->terbit() && $sk->lengkap();
+                @endphp
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="p-5 border-b border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <h2 class="text-sm font-bold text-slate-900">Surat Keterangan Prakerin</h2>
+                            <p class="text-[11px] text-slate-500 mt-0.5">
+                                {{ $l->lowongan?->judul ?? '-' }} &middot; {{ $tgl($l->tgl_mulai, 'j M Y') }} s/d {{ $tgl($l->tgl_selesai, 'j M Y') }}
+                            </p>
+                        </div>
+                        @if ($siap)
+                            <a href="{{ route('pelamar.keterangan', $sk) }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-sm">
+                                <i class="fa-solid fa-file-arrow-down"></i> Unduh PDF
+                            </a>
+                        @endif
+                    </div>
+
+                    @if ($siap)
+                        <div class="p-5 sm:p-8 bg-slate-100">
+                            <div class="sk-kertas mx-auto max-w-[640px] bg-white shadow-md border border-slate-200 px-6 sm:px-12 py-10 text-[13px] leading-relaxed text-black">
+                                @include('surat.partials.keterangan-isi', ['surat' => $sk, 'cfg' => $cfgKeterangan, 'tanggal' => $tanggalSurat])
+                            </div>
+                        </div>
+                    @elseif ($sk)
+                        <div class="p-6 text-xs text-slate-500">
+                            <p><i class="fa-regular fa-clock mr-1"></i> Penilaian prakerin Anda sudah masuk. Surat keterangan sedang disiapkan HRD dan akan tampil di sini setelah diterbitkan.</p>
+                        </div>
+                    @else
+                        <div class="p-6 text-xs text-slate-500">
+                            <p><i class="fa-regular fa-hourglass-half mr-1"></i> Surat keterangan akan tersedia setelah masa prakerin selesai dan penilaian dari pembimbing lapangan diisi.</p>
+                        </div>
+                    @endif
+                </div>
+            @empty
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 text-xs text-slate-500">
+                    <p><i class="fa-regular fa-file-lines mr-1"></i> Belum ada surat keterangan. Menu ini terisi setelah lamaran Anda diterima dan prakerin selesai dinilai.</p>
+                </div>
+            @endforelse
+        </div>
     </div>
 </section>
+
+<style>
+    .tab-btn { color: #64748b; border-color: transparent; }
+    .tab-btn:hover { color: #0f172a; }
+    .tab-btn.aktif { color: #2563eb; border-color: #2563eb; }
+    /* Pratinjau surat keterangan (isi sama dengan PDF) */
+    .sk-kertas p { margin: 0 0 .65rem; text-align: justify; }
+    .sk-kertas .sk-judul { text-align: center; font-size: 1.15rem; font-weight: 800; text-decoration: underline; margin: 0 0 .15rem; }
+    .sk-kertas .sk-nomor { text-align: center; margin-bottom: 1.4rem; }
+    .sk-kertas .sk-tengah { text-align: center; }
+    .sk-kertas table.sk-peserta { width: 100%; border-collapse: collapse; margin: .3rem 0 1rem; }
+    .sk-kertas table.sk-peserta th, .sk-kertas table.sk-peserta td { border: 1px solid #000; padding: .4rem .5rem; text-align: center; }
+    .sk-kertas table.sk-peserta th { background: #efefef; font-size: .75rem; }
+    .sk-kertas .sk-ttd { margin-top: 1.6rem; }
+    .sk-kertas .sk-ttd p { text-align: left; }
+    .sk-kertas .sk-ruang-ttd { height: 56px; }
+</style>
 @endsection
+
+@push('scripts')
+<script>
+    // Tab dashboard: Ringkasan | Surat Keterangan (ingat pilihan lewat #hash)
+    (function () {
+        const isi = document.querySelectorAll('.tab-isi');
+        const tombol = document.querySelectorAll('.tab-btn');
+        function buka(nama) {
+            if (!document.getElementById('tab-' + nama)) nama = 'ringkasan';
+            isi.forEach(e => e.classList.toggle('hidden', e.id !== 'tab-' + nama));
+            tombol.forEach(b => b.classList.toggle('aktif', b.dataset.tab === nama));
+            history.replaceState(null, '', nama === 'ringkasan' ? location.pathname + location.search : '#' + nama);
+        }
+        tombol.forEach(b => b.addEventListener('click', () => buka(b.dataset.tab)));
+        document.querySelectorAll('[data-buka-tab]').forEach(b => b.addEventListener('click', () => { buka(b.dataset.bukaTab); window.scrollTo({ top: 0, behavior: 'smooth' }); }));
+        buka(location.hash.replace('#', '') || 'ringkasan');
+    })();
+</script>
+@endpush

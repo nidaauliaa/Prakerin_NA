@@ -71,6 +71,16 @@ class DataMagang extends Model
         return $this->belongsTo(Departemen::class);
     }
 
+    public function penilaian()
+    {
+        return $this->hasMany(Penilaian::class, 'data_magang_id');
+    }
+
+    public function suratKeterangan()
+    {
+        return $this->hasOne(SuratKeterangan::class, 'data_magang_id');
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);
