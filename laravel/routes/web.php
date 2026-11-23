@@ -34,8 +34,11 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\LamaranAdminController;
 use App\Http\Controllers\Admin\LowonganAdminController;
 use App\Http\Controllers\Admin\SuratBalasanController;
+use App\Http\Controllers\Admin\LamaranInternalController;
 use App\Http\Controllers\Admin\ProfilAdminController;
 use App\Http\Controllers\Pelamar\DashboardController as PelamarDashboardController;
+use App\Http\Controllers\Pelamar\PasswordController as PelamarPasswordController;
+use App\Http\Controllers\Pelamar\ProfilController as PelamarProfilController;
 
 /*
 |--------------------------------------------------------------------------
@@ -68,6 +71,10 @@ Route::prefix('prakerin')->name('pelamar.')->group(function () {
  
 // Dashboard peserta (wajib login pelamar): profil, riwayat, notifikasi, surat balasan, foto profil
 Route::prefix('prakerin')->name('pelamar.')->middleware(WajibLoginPelamar::class)->group(function () {
+    Route::get('/ganti-password', [PelamarPasswordController::class, 'tampil'])->name('password.ganti');
+    Route::post('/ganti-password', [PelamarPasswordController::class, 'simpan'])->name('password.simpan');
+    Route::get('/profil', [PelamarProfilController::class, 'edit'])->name('profil.edit');
+    Route::post('/profil', [PelamarProfilController::class, 'update'])->name('profil.update');
     Route::get('/dashboard', [PelamarDashboardController::class, 'index'])->name('dashboard');
     Route::get('/berkas/{jenis}', [PelamarDashboardController::class, 'berkas'])->where('jenis', 'foto|cv|surat')->name('berkas');
     Route::get('/foto-profil', [PelamarDashboardController::class, 'foto'])->name('foto');
@@ -80,6 +87,7 @@ Route::prefix('prakerin')->name('pelamar.')->middleware(WajibLoginPelamar::class
 Route::middleware(WajibLoginPelamar::class)->group(function () {
     Route::get('/lamaran/lengkapi', [LamaranController::class, 'form'])->name('lamaran.form');
     Route::post('/lamaran', [LamaranController::class, 'store'])->middleware('throttle:5,1')->name('lamaran.store');
+    Route::post('/lamaran/konfirmasi', [LamaranController::class, 'konfirmasi'])->middleware('throttle:5,1')->name('lamaran.konfirmasi');
 });
  
 /*
@@ -247,6 +255,12 @@ Route::prefix('admin')
         
         // Lamaran Masuk
         Route::get('/lamaran', [LamaranAdminController::class, 'index'])->name('lamaran.index');
+
+        // Peserta jalur internal: HRD memasukkan peserta langsung dari Kelola Lamaran Masuk
+        Route::get('/lamaran/internal/baru', [LamaranInternalController::class, 'create'])->name('lamaran.internal.create');
+        Route::get('/lamaran/internal/{pelamar}', [LamaranInternalController::class, 'form'])->name('lamaran.internal.form');
+        Route::post('/lamaran/internal/{pelamar}', [LamaranInternalController::class, 'store'])->name('lamaran.internal.store');
+
         Route::get('/lamaran/{lamaran}/berkas/{jenis}', [LamaranAdminController::class, 'berkas'])
             ->where('jenis', 'foto|cv|surat')->name('lamaran.berkas');
         Route::post('/lamaran/{lamaran}/terima', [LamaranAdminController::class, 'terima'])->name('lamaran.terima');

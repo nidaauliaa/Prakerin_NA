@@ -17,6 +17,12 @@ class WajibLoginPelamar
                 ->with('info', 'Silakan masuk atau daftar terlebih dahulu untuk melanjutkan lamaran.');
         }
 
+        // Akun portal yang dibuatkan HRD (jalur internal): wajib ganti sandi awal dulu.
+        if (Auth::guard('pelamar')->user()->wajib_ganti_password && ! $request->routeIs('pelamar.password.*')) {
+            return redirect()->route('pelamar.password.ganti')
+                ->with('info', 'Demi keamanan, ganti kata sandi awal Anda terlebih dahulu.');
+        }
+
         return $next($request);
     }
 }

@@ -22,6 +22,7 @@
     $mOff = 'px-3 py-1.5 rounded-lg text-slate-600 bg-slate-100 whitespace-nowrap';
 @endphp
 
+<style>html{scrollbar-gutter:stable}</style>
 <!-- HEADER DASHBOARD ADMIN (MATCHED WITH LANDING PAGE BRANDING) -->
 <header class="sticky top-0 z-40 bg-white border-b border-slate-200/80 shadow-sm">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
@@ -33,13 +34,16 @@
                         class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100">
                     <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
+            @else
+                {{-- Penyeimbang selebar tombol menu, supaya posisi logo New Armada SAMA di semua halaman admin --}}
+                <span class="w-9 h-9 shrink-0" aria-hidden="true"></span>
             @endif
 
             <!-- BRAND LOGO -->
             <a href="{{ route('admin.dashboard') }}" class="flex items-center space-x-3">
                 <div class="flex flex-col">
                     <span class="text-xl sm:text-2xl font-black tracking-tight text-brand-red leading-none">
-                        new <span class="text-brand-blue">armada</span> <span class="text-slate-900 font-extrabold">group</span>
+                        new <span class="text-brand-blue">armada</span> <span class="text-slate-900 font-extrabold"></span>
                     </span>
                     <span class="text-[10px] font-extrabold text-slate-400 tracking-wider uppercase mt-1">PT MEKAR ARMADA JAYA</span>
                 </div>

@@ -42,6 +42,16 @@
         </div>
 
         <div id="tab-ringkasan" class="tab-isi">
+        @if (! $lengkap)
+            <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 flex flex-wrap items-center justify-between gap-3">
+                <div class="text-xs text-amber-900 leading-relaxed">
+                    <p class="font-extrabold text-sm"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Profil Anda belum lengkap</p>
+                    Lengkapi data diri sekali saja (termasuk NIS/NIM) agar bisa melamar dan dikenali HRD saat didaftarkan sebagai peserta.
+                </div>
+                <a href="{{ route('pelamar.profil.edit') }}" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition whitespace-nowrap">Lengkapi Profil</a>
+            </div>
+        @endif
+
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
             <!-- ========== PROFIL ========== -->
@@ -63,12 +73,14 @@
                                 {{ $smk ? 'Anak SMK' : 'Mahasiswa (D3/S1)' }}
                             </span>
                         @endif
+                        <a href="{{ route('pelamar.profil.edit') }}" class="block mt-2 text-[11px] font-bold text-brand-blue hover:underline"><i class="fa-solid fa-pen-to-square mr-1"></i>{{ $profil ? 'Ubah Profil' : 'Lengkapi Profil' }}</a>
                     </div>
                 </div>
 
                 @if ($profil)
                     <dl class="p-6 space-y-3 text-xs">
                         @foreach ([
+                            $baris('Jenis Kelamin', match ($profil->jenis_kelamin) { 'L' => 'Laki-laki', 'P' => 'Perempuan', default => null }),
                             $baris('No. WhatsApp', $profil->no_wa),
                             $baris('Alamat', $profil->alamat),
                             $baris($smk ? 'Asal Sekolah' : 'Asal Kampus', $profil->asal_sekolah),
@@ -103,8 +115,8 @@
                     </div>
                 @else
                     <div class="p-6 text-xs text-slate-500 leading-relaxed">
-                        <p>Data profil Anda terisi otomatis dari formulir saat mengirim lamaran pertama.</p>
-                        <a href="{{ route('beranda') }}#lowongan" class="inline-block mt-3 px-4 py-2 rounded-xl bg-slate-900 hover:bg-brand-blue text-white font-bold transition">Lihat Lowongan</a>
+                        <p>Profil belum diisi. Lengkapi sekali saja, lalu dipakai untuk semua lamaran dan data presensi.</p>
+                        <a href="{{ route('pelamar.profil.edit') }}" class="inline-block mt-3 px-4 py-2 rounded-xl bg-slate-900 hover:bg-brand-blue text-white font-bold transition">Lengkapi Profil</a>
                     </div>
                 @endif
             </div>
@@ -129,7 +141,11 @@
                             <div class="text-xs text-emerald-900 leading-relaxed flex-1">
                                 <p class="font-extrabold text-sm">Selamat, {{ $pelamar->nama_depan }}! Pengajuan prakerin Anda disetujui.</p>
                                 <p class="mt-0.5">
-                                    Lamaran untuk posisi <strong>{{ $l->lowongan?->judul ?? '-' }}</strong> telah disetujui HRD PT Mekar Armada Jaya.
+                                    @if ($l->lowongan)
+                                        Lamaran untuk posisi <strong>{{ $l->lowongan->judul }}</strong> telah disetujui HRD PT Mekar Armada Jaya.
+                                    @else
+                                        Anda telah didaftarkan langsung oleh HRD PT Mekar Armada Jaya sebagai peserta prakerin.
+                                    @endif
                                     Periode magang: <strong>{{ $tgl($l->tgl_mulai, 'j M Y') }}</strong> s/d <strong>{{ $tgl($l->tgl_selesai, 'j M Y') }}</strong>.
                                 </p>
 
@@ -149,7 +165,7 @@
 
                                 <p class="mt-3 text-[11px] text-emerald-800/80">
                                     Presensi harian dilakukan lewat <a href="{{ route('login') }}" class="font-bold underline">halaman Login Presensi</a>
-                                    @if ($l->nis_nim) (gunakan NIS/NIM <strong>{{ $l->nis_nim }}</strong> sebagai username)@endif.
+                                    @if ($l->nis_nim) (username: NIS/NIM <strong>{{ $l->nis_nim }}</strong>, kata sandi sama dengan akun ini)@endif.
                                 </p>
                             </div>
                         </div>
@@ -175,7 +191,7 @@
                             <div class="rounded-xl border border-slate-200 p-4">
                                 <div class="flex flex-wrap items-start justify-between gap-2">
                                     <div>
-                                        <h3 class="text-sm font-bold text-slate-900">{{ $l->lowongan?->judul ?? '-' }}</h3>
+                                        <h3 class="text-sm font-bold text-slate-900">{{ $l->lowongan?->judul ?? 'Penempatan langsung HRD (Internal)' }}</h3>
                                         <p class="text-[11px] text-slate-400 mt-0.5">Kode: <strong class="text-slate-600">{{ $l->kode }}</strong> &middot; Dikirim {{ $tgl($l->created_at, 'j M Y') }}</p>
                                     </div>
                                     <span class="px-2.5 py-1 rounded-md text-[11px] font-bold {{ $kelas }}">{{ $label }}</span>
@@ -213,7 +229,9 @@
                         @endforelse
                     </div>
 
-                    @if ($sisa > 0)
+                    @if ($diterima->isNotEmpty())
+                        <p class="mt-4 text-[11px] text-slate-400">Anda sudah diterima di satu posisi. Satu pelamar hanya dapat diterima di satu posisi, jadi lamaran lain tidak dapat diajukan.</p>
+                    @elseif ($sisa > 0)
                         <a href="{{ route('beranda') }}#lowongan" class="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-xl border border-brand-blue text-brand-blue hover:bg-blue-50 text-xs font-bold transition">
                             <i class="fa-solid fa-plus"></i> Lamar posisi lain (sisa {{ $sisa }})
                         </a>

@@ -36,7 +36,7 @@
                 <a href="{{ route('beranda') }}#lowongan" class="inline-block mt-3 text-[11px] font-semibold text-brand-blue hover:underline">Ubah posisi / periode</a>
             </div>
 
-            <form method="POST" action="{{ route('lamaran.store') }}" enctype="multipart/form-data" class="p-6 space-y-6">
+            <form id="formLamaran" method="POST" action="{{ route('lamaran.store') }}" enctype="multipart/form-data" class="p-6 space-y-6">
                 @csrf
 
                 @if ($errors->any())
@@ -56,9 +56,19 @@
                         <i class="fa-regular fa-id-card text-brand-blue"></i> Data Diri Pelamar
                     </h2>
 
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap <span class="text-rose-500">*</span></label>
-                        <input type="text" name="nama" value="{{ old('nama', $pelamar->nama) }}" required maxlength="150" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap <span class="text-rose-500">*</span></label>
+                            <input type="text" name="nama" value="{{ old('nama', $pelamar->nama) }}" required maxlength="150" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Jenis Kelamin <span class="text-rose-500">*</span></label>
+                            <select name="jenis_kelamin" required class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
+                                <option value="">Pilih</option>
+                                <option value="L" @selected(old('jenis_kelamin') === 'L')>Laki-laki</option>
+                                <option value="P" @selected(old('jenis_kelamin') === 'P')>Perempuan</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -68,7 +78,7 @@
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">No. WhatsApp <span class="text-rose-500">*</span></label>
-                            <input type="tel" name="no_wa" value="{{ old('no_wa') }}" required placeholder="08xxxxxxxxxx" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
+                            <input type="tel" name="no_wa" value="{{ old('no_wa') }}" required inputmode="tel" minlength="6" maxlength="20" placeholder="08xxxxxxxxxx (6-15 digit)" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
                         </div>
                     </div>
 
@@ -91,6 +101,11 @@
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Jurusan <span class="text-rose-500">*</span></label>
                             <input type="text" name="jurusan" value="{{ old('jurusan') }}" required maxlength="150" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
                         </div>
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">{{ $isSmk ? 'NIS (Nomor Induk Siswa)' : 'NIM (Nomor Induk Mahasiswa)' }} <span class="text-rose-500">*</span></label>
+                            <input type="text" name="nis_nim" value="{{ old('nis_nim') }}" required maxlength="50" autocomplete="off" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
+                            <p class="text-[11px] text-slate-400 mt-1">Dipakai sebagai username login presensi saat magang, pastikan penulisannya benar.</p>
+                        </div>
                     </div>
                 </div>
 
@@ -107,7 +122,7 @@
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">{{ $isSmk ? 'No. HP Pembimbing' : 'No. WhatsApp Dosen Pembimbing' }} {!! $isSmk ? '<span class="text-rose-500">*</span>' : '<span class="text-slate-400 font-normal">(opsional)</span>' !!}</label>
-                            <input type="tel" name="no_wa_pembimbing" value="{{ old('no_wa_pembimbing') }}" placeholder="08xxxxxxxxxx" @required($isSmk) class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
+                            <input type="tel" name="no_wa_pembimbing" value="{{ old('no_wa_pembimbing') }}" inputmode="tel" minlength="6" maxlength="20" placeholder="08xxxxxxxxxx (6-15 digit)" @required($isSmk) class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
                         </div>
                     </div>
 
@@ -123,7 +138,7 @@
                 </div>
 
                 <div class="flex justify-end">
-                    <button type="submit" class="px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-brand-blue hover:bg-brand-darkBlue shadow-md shadow-blue-500/20 transition">
+                    <button type="button" onclick="const f = document.getElementById('formLamaran'); if (f.reportValidity()) bukaPersyaratan(f);" class="px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-brand-blue hover:bg-brand-darkBlue shadow-md shadow-blue-500/20 transition">
                         Kirim Lamaran
                     </button>
                 </div>
@@ -132,3 +147,7 @@
     </div>
 </section>
 @endsection
+
+@push('modals')
+    @include('lamaran._persyaratan')
+@endpush

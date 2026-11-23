@@ -35,11 +35,12 @@ class DashboardController extends Controller
         return view('pelamar.dashboard', [
             'pelamar'  => $pelamar,
             'riwayat'  => $riwayat,
-            'profil'   => $riwayat->first(),                                   // data diri = lamaran terbaru
+            'profil'   => $pelamar->profil(),                                  // data diri (diisi sekali, dipakai semua lamaran)
+            'lengkap'  => $pelamar->profilLengkap(),
             'diterima' => $diterima,                                           // bahan notifikasi
             'ada'      => [                                                    // berkas mana yang pernah diunggah
-                'cv'    => $riwayat->contains(fn ($l) => (bool) $l->cv_path),
-                'surat' => $riwayat->contains(fn ($l) => (bool) $l->surat_permohonan_path),
+                'cv'    => filled($pelamar->cv_path) || $riwayat->contains(fn ($l) => (bool) $l->cv_path),
+                'surat' => filled($pelamar->surat_permohonan_path) || $riwayat->contains(fn ($l) => (bool) $l->surat_permohonan_path),
                 'foto'  => (bool) $pelamar->fotoPath(),
             ],
             'sisa'     => max(0, \App\Models\Pelamar::MAKS_LAMARAN - $riwayat->count()),
@@ -55,8 +56,8 @@ class DashboardController extends Controller
     {
         $kolom = self::BERKAS[$jenis] ?? abort(404);
 
-        $path = Auth::guard('pelamar')->user()
-            ->lamaran()->whereNotNull($kolom)->latest('id')->value($kolom);
+        $pelamar = Auth::guard('pelamar')->user();
+        $path    = $pelamar->{$kolom} ?: $pelamar->lamaran()->whereNotNull($kolom)->latest('id')->value($kolom);
 
         abort_unless($path && Storage::disk('local')->exists($path), 404);
 

@@ -69,6 +69,12 @@ class AuthController extends Controller
         Auth::guard('pelamar')->login($pelamar);
         $request->session()->regenerate();
 
+        // Akun baru: kalau tidak sedang memilih posisi, minta lengkapi profil dulu
+        // (peserta jalur internal harus punya profil agar bisa dicari HRD).
+        if (! session()->has('lamaran_draft')) {
+            return redirect()->route('pelamar.profil.edit')->with('info', 'Akun berhasil dibuat. Lengkapi profil Anda terlebih dahulu.');
+        }
+
         return $this->setelahMasuk();
     }
 
@@ -83,6 +89,10 @@ class AuthController extends Controller
 
     private function setelahMasuk()
     {
+        if (Auth::guard('pelamar')->user()?->wajib_ganti_password) {
+            return redirect()->route('pelamar.password.ganti');
+        }
+
         return session()->has('lamaran_draft')
             ? redirect()->route('lamaran.form')
             : redirect()->route('beranda');

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Lamaran;
 use App\Models\Lowongan;
+use Illuminate\Support\Facades\Auth;
 
 class BerandaController extends Controller
 {
@@ -33,6 +34,9 @@ class BerandaController extends Controller
             ])->values(),
         ])->values();
 
-        return view('beranda', compact('jobs'));
+        // Pelamar yang sudah pernah melamar (profil sudah terisi): lamaran berikutnya tanpa form data diri.
+        $punyaProfil = (bool) Auth::guard('pelamar')->user()?->profil();
+
+        return view('beranda', compact('jobs', 'punyaProfil'));
     }
 }

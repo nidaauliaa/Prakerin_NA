@@ -69,17 +69,40 @@ class LamaranAdminController extends Controller
      */
     public function terima(Request $request, Lamaran $lamaran)
     {
-        $data = $request->validate([
-            'nis_nim'       => ['required', 'string', 'max:50', 'unique:users,nis_nim', 'unique:data_magang,nis_nim'],
-            'departemen_id' => ['required', 'integer', 'exists:departemen,id'],
-        ], [
-            'nis_nim.required'       => 'NIS / NIM wajib diisi untuk menerima peserta.',
-            'nis_nim.unique'         => 'NIS / NIM ini sudah dipakai peserta lain.',
-            'departemen_id.required' => 'Departemen wajib dipilih.',
-        ]);
-
         if ($lamaran->status !== 'menunggu') {
             return back()->withErrors(['status' => 'Lamaran ini sudah diputuskan sebelumnya.']);
+        }
+
+        // NIS/NIM & jenis kelamin diisi pelamar saat mendaftar; departemen mengikuti posisi yang dilamar.
+        // (Input admin hanya dipakai sebagai cadangan untuk lamaran lama yang datanya belum lengkap.)
+        $posisi = $lamaran->lowongan()->withTrashed()->first();
+
+        $v = \Illuminate\Support\Facades\Validator::make([
+            'nis_nim'       => trim((string) ($lamaran->nis_nim ?: $request->input('nis_nim'))),
+            'jenis_kelamin' => $lamaran->jenis_kelamin ?: $request->input('jenis_kelamin'),
+            'departemen_id' => $posisi?->departemen_id,
+        ], [
+            'nis_nim'       => ['required', 'string', 'max:50', 'unique:users,nis_nim', 'unique:data_magang,nis_nim'],
+            'jenis_kelamin' => ['required', 'in:L,P'],
+            'departemen_id' => ['required', 'integer', 'exists:departemen,id'],
+        ], [
+            'nis_nim.required'       => 'NIS/NIM pelamar belum terisi (lamaran lama). Isi pada kolom yang muncul di panel Terima.',
+            'nis_nim.unique'         => 'NIS/NIM ini sudah dipakai peserta lain.',
+            'jenis_kelamin.required' => 'Jenis kelamin pelamar belum terisi (lamaran lama). Isi pada kolom yang muncul di panel Terima.',
+            'departemen_id.required' => 'Posisi ini belum dihubungkan ke departemen. Atur di menu Lowongan (Edit > Departemen), lalu terima lagi.',
+            'departemen_id.exists'   => 'Departemen pada posisi ini tidak valid. Perbarui di menu Lowongan.',
+        ]);
+
+        if ($v->fails()) {
+            return back()->withErrors($v);
+        }
+
+        $data = $v->validated();
+
+        // Satu pelamar hanya bisa diterima di satu posisi.
+        if ($lamaran->pelamar_id && Lamaran::where('pelamar_id', $lamaran->pelamar_id)
+                ->where('status', 'diterima')->where('id', '!=', $lamaran->id)->exists()) {
+            return back()->withErrors(['status' => 'Pelamar ini sudah diterima di posisi lain. Satu pelamar hanya bisa diterima di satu posisi.']);
         }
 
         $lowongan = $lamaran->lowongan()->withTrashed()->first();
@@ -104,8 +127,10 @@ class LamaranAdminController extends Controller
         $cv    = $this->salinKePublik($lamaran->cv_path, 'peserta/cv');
         $surat = $this->salinKePublik($lamaran->surat_permohonan_path, 'peserta/surat');
 
+        $otomatis = 0;
+
         try {
-            $user = DB::transaction(function () use ($lamaran, $data, $departemen, $foto, $cv, $surat, $publik) {
+            $user = DB::transaction(function () use ($lamaran, $data, $departemen, $foto, $cv, $surat, $publik, &$otomatis) {
                 $uuid = (string) Str::uuid();
 
                 // Email pelamar dipakai kalau belum dipakai akun lain (kolom users.email unik).
@@ -115,8 +140,9 @@ class LamaranAdminController extends Controller
                     'name'                 => $lamaran->nama,
                     'email'                => $email,
                     'nis_nim'              => $data['nis_nim'],
-                    'password'             => User::PASSWORD_DEFAULT,   // di-hash oleh cast 'hashed'
-                    'wajib_ganti_password' => true,
+                    // Satu sandi untuk portal & presensi: pakai sandi akun portal pelamar (sudah berupa hash).
+                    'password'             => $lamaran->pelamar?->getRawOriginal('password') ?? User::PASSWORD_DEFAULT,
+                    'wajib_ganti_password' => ! $lamaran->pelamar,
                     'peran'                => 'peserta',
                     'status_akun'          => 'aktif',
                     'departemen_id'        => $departemen->id,
@@ -129,6 +155,7 @@ class LamaranAdminController extends Controller
                 $dm = DataMagang::create([
                     'nama'                  => $lamaran->nama,
                     'tipe_magang'           => $lamaran->tipe_magang,
+                    'jenis_kelamin'         => $data['jenis_kelamin'],
                     'no_wa'                 => $lamaran->no_wa,
                     'alamat'                => $lamaran->alamat,
                     'nis_nim'               => $data['nis_nim'],
@@ -154,11 +181,15 @@ class LamaranAdminController extends Controller
 
                 $lamaran->update([
                     'status'          => 'diterima',
+                    'jenis_kelamin'   => $data['jenis_kelamin'],
                     'nis_nim'         => $data['nis_nim'],
                     'diputuskan_oleh' => $this->adminId(),
                     'diputuskan_pada' => now(),
                     'data_magang_id'  => $dm->id,
                 ]);
+
+                // Auto-decline lamaran lain milik pelamar yang sama (hanya bisa diterima di 1 posisi).
+                $otomatis = Lamaran::tolakLainnyaOtomatis($lamaran, $this->adminId());
 
                 return $user;
             });
@@ -170,7 +201,7 @@ class LamaranAdminController extends Controller
         // Lanjut ke langkah berikutnya: HRD diminta membuat Surat Balasan Ijin Prakerin (form terbuka otomatis).
         return redirect()
             ->route('admin.lamaran.index', ['status' => 'diterima', 'buka' => $lamaran->id, 'surat' => 1])
-            ->with('sukses', "{$lamaran->nama} diterima. Akun absensi dibuat: login dengan NIS/NIM {$data['nis_nim']} dan sandi awal " . User::PASSWORD_DEFAULT . '. QR kartu bisa dicetak di menu Peserta Aktif. Langkah berikutnya: isi form Surat Balasan Ijin Prakerin di bawah ini.');
+            ->with('sukses', "{$lamaran->nama} diterima. Akun absensi dibuat: login dengan NIS/NIM {$data['nis_nim']} dan kata sandi yang sama dengan akun portal pelamar. QR kartu bisa dicetak di menu Peserta Aktif. " . ($otomatis ? "{$otomatis} lamaran lain milik pelamar ini otomatis ditolak (hanya bisa diterima di satu posisi). " : '') . 'Langkah berikutnya: isi form Surat Balasan Ijin Prakerin di bawah ini.');
     }
 
     /** Salin berkas pelamar (disk privat) ke disk public; mengembalikan path barunya atau null. */
@@ -214,7 +245,10 @@ class LamaranAdminController extends Controller
             'id'            => $l->id,
             'nama'          => $l->nama,
             'smk'           => $smk,
-            'posisi'        => $l->lowongan?->judul ?? '-',
+            'posisi'        => $l->lowongan?->judul ?? 'Penempatan langsung HRD (Internal)',
+            'internal'         => $l->adalahInternal(),
+            'jk'            => match ($l->jenis_kelamin) { 'L' => 'Laki-laki', 'P' => 'Perempuan', default => '-' },
+            'jkKode'        => $l->jenis_kelamin,
             'email'         => $l->email,
             'wa'            => $l->no_wa,
             'alamat'        => $l->alamat,
@@ -230,6 +264,7 @@ class LamaranAdminController extends Controller
             'catatan'       => $l->catatan_admin,
             'diputuskan'    => $l->diputuskan_pada?->translatedFormat('d M Y, H:i'),
             'departemenId'  => $l->lowongan?->departemen_id,
+            'departemenNama' => $l->lowongan?->departemen_id ? \App\Models\Departemen::find($l->lowongan->departemen_id)?->nama : null,
             'nisNim'        => $l->nis_nim,
             'suratUrl'      => route('admin.lamaran.surat.simpan', $l),
             'suratPdf'      => $l->suratBalasan ? route('admin.lamaran.surat.pdf', $l) : null,
@@ -237,9 +272,10 @@ class LamaranAdminController extends Controller
             'surat'         => [
                 'nomor_surat'      => $l->suratBalasan?->nomor_surat ?? '',
                 'tanggal_surat'    => ($l->suratBalasan?->tanggal_surat ?? today())->toDateString(),
-                'ditujukan_kepada' => $l->suratBalasan?->ditujukan_kepada ?? '',
+                // Bapak/Ibu <dosen/guru pembimbing yang diinput pelamar>
+                'ditujukan_kepada' => $l->suratBalasan?->ditujukan_kepada ?? (string) $l->pembimbing,
                 'tgl_pengajuan'    => ($l->suratBalasan?->tgl_pengajuan ?? $l->created_at)->toDateString(),
-                'media_pengajuan'  => $l->suratBalasan?->media_pengajuan ?? '',
+                'media_pengajuan'  => $l->suratBalasan?->media_pengajuan ?? ($l->adalahInternal() ? 'Pengajuan Sekolah' : 'Website Prakerin'),
                 'tgl_mulai'        => ($l->suratBalasan?->tgl_mulai ?? $l->tgl_mulai)->toDateString(),
                 'tgl_selesai'      => ($l->suratBalasan?->tgl_selesai ?? $l->tgl_selesai)->toDateString(),
                 'tgl_induction'    => ($l->suratBalasan?->tgl_induction ?? $l->tgl_mulai)->toDateString(),

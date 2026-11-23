@@ -22,8 +22,8 @@ class Lamaran extends Model
     public const STATUS_MENGISI_KUOTA = ['diterima'];
 
     protected $fillable = [
-        'uuid', 'kode', 'lowongan_id', 'pelamar_id', 'tipe_magang',
-        'nama', 'email', 'no_wa', 'alamat', 'foto_pas', 'asal_sekolah', 'jurusan',
+        'uuid', 'kode', 'jalur', 'lowongan_id', 'pelamar_id', 'tipe_magang',
+        'nama', 'jenis_kelamin', 'email', 'no_wa', 'alamat', 'foto_pas', 'asal_sekolah', 'jurusan',
         'pembimbing', 'no_wa_pembimbing', 'cv_path', 'surat_permohonan_path', 'nis_nim',
         'tgl_mulai', 'tgl_selesai',
         'status', 'catatan_admin', 'diputuskan_oleh', 'diputuskan_pada', 'data_magang_id',
@@ -56,6 +56,32 @@ class Lamaran extends Model
     public function dataMagang(): BelongsTo
     {
         return $this->belongsTo(DataMagang::class, 'data_magang_id');
+    }
+
+    public function adalahInternal(): bool
+    {
+        return $this->jalur === 'internal';
+    }
+
+    /**
+     * Satu pelamar hanya bisa diterima di SATU posisi: begitu satu lamaran diterima,
+     * lamaran lain miliknya yang masih "menunggu" otomatis ditolak. Mengembalikan jumlahnya.
+     */
+    public static function tolakLainnyaOtomatis(self $diterima, ?int $adminId = null): int
+    {
+        if (! $diterima->pelamar_id) {
+            return 0;
+        }
+
+        return static::where('pelamar_id', $diterima->pelamar_id)
+            ->where('id', '!=', $diterima->id)
+            ->where('status', 'menunggu')
+            ->update([
+                'status'          => 'ditolak',
+                'catatan_admin'   => 'Otomatis ditolak: Anda sudah diterima di posisi lain (satu pelamar hanya dapat diterima di satu posisi).',
+                'diputuskan_oleh' => $adminId,
+                'diputuskan_pada' => now(),
+            ]);
     }
 
     public function suratBalasan(): HasOne

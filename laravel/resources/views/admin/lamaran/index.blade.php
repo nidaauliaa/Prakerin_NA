@@ -10,7 +10,10 @@
             <p class="text-xs text-slate-500 mt-1">Verifikasi berkas persyaratan SMK vs Diploma/Sarjana dan tindak lanjuti penerimaan.</p>
         </div>
 
-        <form method="GET" class="flex flex-wrap gap-2">
+        <form method="GET" class="flex flex-wrap items-center gap-2">
+            <a href="{{ route('admin.lamaran.internal.create') }}" class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-brand-blue to-brand-purpleBlue shadow-sm hover:opacity-90 transition flex items-center gap-2">
+                <i class="fa-solid fa-user-plus"></i> Tambah Peserta Internal
+            </a>
             <select name="tipe" onchange="this.form.submit()" class="bg-white border border-slate-300 text-xs font-semibold rounded-xl px-3 py-2 focus:ring-2 focus:ring-brand-blue">
                 <option value="semua" @selected($tipe === 'semua')>Semua Jenjang (SMK &amp; D3/S1)</option>
                 <option value="smk" @selected($tipe === 'smk')>Khusus Anak SMK</option>
@@ -64,7 +67,12 @@
                                 @endif
                                 <span class="ml-1 text-slate-700 font-medium">{{ $l->asal_sekolah }}</span>
                             </td>
-                            <td class="p-4 font-semibold text-slate-800">{{ $l->lowongan?->judul ?? '-' }}</td>
+                            <td class="p-4 font-semibold text-slate-800">
+                                {{ $l->lowongan?->judul ?? 'Penempatan langsung HRD' }}
+                                @if ($l->adalahInternal())
+                                    <span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-violet-100 text-violet-700">Internal</span>
+                                @endif
+                            </td>
                             <td class="p-4 text-slate-500">{{ $l->created_at->format('Y-m-d') }}</td>
                             <td class="p-4 font-semibold {{ $kurang->isEmpty() ? 'text-emerald-600' : 'text-amber-600' }}">
                                 <i class="fa-solid fa-paperclip mr-1"></i>
@@ -121,6 +129,7 @@
                     <div><span class="text-slate-400 block">No. WhatsApp Peserta:</span><strong id="mWa" class="text-slate-800"></strong></div>
                     <div><span id="mAsalLabel" class="text-slate-400 block"></span><strong id="mAsal" class="text-slate-800"></strong></div>
                     <div><span class="text-slate-400 block">Jurusan:</span><strong id="mJurusan" class="text-slate-800"></strong></div>
+                    <div><span class="text-slate-400 block">Jenis Kelamin:</span><strong id="mJk" class="text-slate-800"></strong></div>
                     <div class="col-span-2"><span class="text-slate-400 block">Alamat Domisili:</span><strong id="mAlamat" class="text-slate-800"></strong></div>
                     <div class="col-span-2"><span class="text-slate-400 block">Periode Magang Diajukan:</span><strong id="mPeriode" class="text-slate-800"></strong></div>
                     <div class="col-span-2"><span id="mPembimbingLabel" class="text-slate-400 block"></span><strong id="mPembimbing" class="text-slate-800"></strong></div>
@@ -161,25 +170,35 @@
             <form id="panelTerima" method="POST" class="hidden border border-emerald-200 bg-emerald-50 rounded-xl p-4 space-y-3">
                 @csrf
                 <p class="font-bold text-emerald-900 text-xs">Terima sebagai peserta magang</p>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-white/70 border border-emerald-100 rounded-lg p-3 text-xs">
+                    <div><span class="text-slate-400 block">Posisi / Departemen:</span><strong id="terimaDept" class="text-slate-800"></strong></div>
+                    <div><span class="text-slate-400 block">NIS / NIM:</span><strong id="terimaNis" class="text-slate-800"></strong></div>
+                </div>
+                <p id="warnDept" class="hidden text-[11px] text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+                    Posisi ini belum dihubungkan ke departemen. Atur dulu di menu <strong>Lowongan</strong> (Edit &gt; Departemen), lalu terima lagi.
+                </p>
+
+                {{-- Cadangan khusus lamaran lama yang NIS/NIM atau jenis kelaminnya belum terisi --}}
+                <div id="blokLengkapi" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3 border border-amber-200 bg-amber-50 rounded-lg p-3">
+                    <p class="sm:col-span-2 text-[11px] text-amber-800">Lamaran lama: data berikut belum diisi pelamar, lengkapi di sini.</p>
                     <div>
                         <label class="block text-[11px] font-semibold text-slate-700 mb-1">NIS / NIM <span class="text-rose-500">*</span></label>
-                        <input type="text" name="nis_nim" required maxlength="50" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
+                        <input type="text" name="nis_nim" id="inpNis" required maxlength="50" disabled class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
                     </div>
                     <div>
-                        <label class="block text-[11px] font-semibold text-slate-700 mb-1">Departemen <span class="text-rose-500">*</span></label>
-                        <select name="departemen_id" id="selDepartemen" required class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
-                            <option value="">- Pilih departemen -</option>
-                            @foreach ($departemen as $d)
-                                <option value="{{ $d->id }}">{{ $d->nama }}</option>
-                            @endforeach
+                        <label class="block text-[11px] font-semibold text-slate-700 mb-1">Jenis Kelamin <span class="text-rose-500">*</span></label>
+                        <select name="jenis_kelamin" id="selJk" required disabled class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
+                            <option value="">- Pilih -</option>
+                            <option value="L">Laki-laki</option>
+                            <option value="P">Perempuan</option>
                         </select>
                     </div>
                 </div>
-                <p class="text-[11px] text-emerald-800 leading-relaxed">Akun absensi dibuat otomatis (sama seperti Tambah Anak Magang): login dengan NIS/NIM dan sandi awal 12345678, wajib diganti saat login pertama.</p>
+
+                <p class="text-[11px] text-emerald-800 leading-relaxed">Akun absensi dibuat otomatis: login dengan NIS/NIM dan kata sandi yang sama dengan akun portal pelamar (tidak perlu ganti sandi lagi). Lamaran lain milik pelamar ini yang masih menunggu akan otomatis ditolak (satu pelamar hanya bisa diterima di satu posisi).</p>
                 <div class="flex justify-end gap-2">
                     <button type="button" onclick="tampilPanel(null)" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-white transition">Batal</button>
-                    <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition">Ya, Terima</button>
+                    <button type="submit" id="btnYaTerima" class="px-4 py-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition">Ya, Terima</button>
                 </div>
             </form>
 
@@ -215,8 +234,8 @@
                     <p class="sm:col-span-2 text-[11px] text-sky-900">No. di surat: <strong id="previewNomor" class="font-mono"></strong></p>
 
                     <div class="sm:col-span-2">
-                        <label class="block text-[11px] font-semibold text-slate-700 mb-1">Ditujukan kepada (Bapak/Ibu ...) <span class="text-rose-500">*</span></label>
-                        <input type="text" name="ditujukan_kepada" required maxlength="150" placeholder="mis. Kaprodi Teknik Informatika Universitas Tidar" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
+                        <label class="block text-[11px] font-semibold text-slate-700 mb-1">Ditujukan kepada (Bapak/Ibu ...) <span class="text-rose-500">*</span> <span class="font-normal text-slate-400">terisi dari dosen/guru pembimbing, bisa diubah</span></label>
+                        <input type="text" name="ditujukan_kepada" required maxlength="150" placeholder="Nama dosen/guru pembimbing" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
                     </div>
 
                     <div>
@@ -225,16 +244,15 @@
                     </div>
                     <div>
                         <label class="block text-[11px] font-semibold text-slate-700 mb-1">Media Pengajuan (melalui Surat ...) <span class="text-rose-500">*</span></label>
-                        <input type="text" name="media_pengajuan" required maxlength="100" list="daftarMediaPengajuan" placeholder="mis. Elektronik (Email)" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
-                        <datalist id="daftarMediaPengajuan">
-                            <option value="Elektronik (Email)">
-                            <option value="Elektronik (Portal Lowongan)">
-                            <option value="Resmi">
-                        </datalist>
+                        <select name="media_pengajuan" required class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
+                            <option value="">- Pilih -</option>
+                            <option value="Website Prakerin">Website Prakerin</option>
+                            <option value="Pengajuan Sekolah">Pengajuan Sekolah</option>
+                        </select>
                     </div>
 
                     <div>
-                        <label class="block text-[11px] font-semibold text-slate-700 mb-1">Pelaksanaan Mulai <span class="text-rose-500">*</span></label>
+                        <label class="block text-[11px] font-semibold text-slate-700 mb-1">Pelaksanaan Mulai <span class="text-rose-500">*</span> <span class="font-normal text-slate-400">(periode yang diajukan peserta)</span></label>
                         <input type="date" name="tgl_mulai" required class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
                     </div>
                     <div>
@@ -320,7 +338,8 @@
         $('mWa').textContent = app.wa;
         $('mAsalLabel').textContent = app.asalLabel + ':';
         $('mAsal').textContent = app.asal;
-        $('mJurusan').textContent = app.jurusan;
+        $('mJurusan').textContent = app.jurusan || '-';
+        $('mJk').textContent = app.jk;
         $('mAlamat').textContent = app.alamat;
         $('mPeriode').textContent = app.periode;
         $('mPembimbingLabel').textContent = app.pembimbingLabel + ':';
@@ -356,7 +375,17 @@
 
         $('panelTerima').action = urlTerima.replace('__ID__', app.id);
         $('panelTolak').action = urlTolak.replace('__ID__', app.id);
-        $('selDepartemen').value = app.departemenId || '';
+        // Panel Terima: departemen mengikuti posisi; NIS/NIM & jenis kelamin dari pelamar.
+        $('terimaDept').textContent = app.posisi + (app.departemenNama ? ' / ' + app.departemenNama : '');
+        $('terimaNis').textContent = app.nisNim || '-';
+        $('warnDept').classList.toggle('hidden', !!app.departemenId);
+        $('btnYaTerima').disabled = !app.departemenId;
+        const lengkapi = !app.nisNim || !app.jkKode;   // hanya lamaran lama
+        $('blokLengkapi').classList.toggle('hidden', !lengkapi);
+        $('inpNis').disabled = !lengkapi || !!app.nisNim;
+        $('selJk').disabled = !lengkapi || !!app.jkKode;
+        $('inpNis').value = app.nisNim || '';
+        $('selJk').value = app.jkKode || '';
         tampilPanel(null);
 
         $('applicantDetailModal').classList.remove('hidden');

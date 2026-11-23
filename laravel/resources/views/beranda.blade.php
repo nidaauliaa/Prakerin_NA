@@ -266,17 +266,29 @@
             <!-- Modal Footer -->
             <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end space-x-3">
                 <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-200 transition">Batal</button>
-                <button type="submit" id="submitBtn" disabled class="px-5 py-2 rounded-xl text-xs font-bold text-white bg-slate-300 cursor-not-allowed transition">Kirim Lamaran</button>
+                <button type="button" id="submitBtn" onclick="kirimLamaran()" disabled class="px-5 py-2 rounded-xl text-xs font-bold text-white bg-slate-300 cursor-not-allowed transition">Kirim Lamaran</button>
             </div>
             </form>
         </div>
     </div>
 @endpush
 
+@push('modals')
+    @include('lamaran._persyaratan')
+@endpush
+
 @push('scripts')
     <script>
         // DATA LOWONGAN PERMANEN (1 CARD = 1 POSISI UNIK)
         const jobList = @json($jobs);
+        const punyaProfil = @json($punyaProfil);
+
+        // Sudah punya profil -> langsung popup persyaratan lalu lamaran terkirim (tanpa isi data diri lagi).
+        // Belum punya profil -> lanjut ke login / form data diri (popup persyaratan muncul di form itu).
+        function kirimLamaran() {
+            const form = document.getElementById('lamarForm');
+            if (punyaProfil) { bukaPersyaratan(form); } else { form.submit(); }
+        }
 
         let activeCategory = 'semua';
         let selectedJob = null;

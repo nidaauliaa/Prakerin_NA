@@ -12,7 +12,7 @@
   <div class="flex items-start justify-between gap-4">
     <div>
       <h1 class="text-2xl font-extrabold">Tambah Anak Magang</h1>
-      <p class="text-xs text-slate-500 mt-1">Daftarkan peserta baru. Akun login dibuat otomatis dan QR kartu langsung tersedia.</p>
+      <p class="text-xs text-slate-500 mt-1">Daftarkan peserta langsung (jalur internal, mis. dari surat permohonan sekolah/kampus). Akun login dibuat otomatis dan QR kartu langsung tersedia.</p>
     </div>
     <a href="{{ route('admin.presensi.index') }}" class="shrink-0 border border-slate-300 hover:bg-slate-50 text-xs font-semibold rounded-lg px-4 py-2.5">← Kembali</a>
   </div>
@@ -20,7 +20,9 @@
   {{-- Info akun --}}
   <div class="mt-4 rounded-lg bg-blue-50 border border-blue-100 text-blue-800 text-xs px-4 py-3 leading-relaxed">
     <b>Akun login peserta:</b> login memakai <b>NIS/NIM</b>, kata sandi awal = <b>{{ \App\Models\User::PASSWORD_DEFAULT }}</b>.
-    Peserta wajib mengganti kata sandi saat login pertama.
+    Peserta wajib mengganti kata sandi saat login pertama.<br>
+    <b>Akun Dashboard Peserta:</b> dibuat otomatis dari <b>email</b> peserta (login portal memakai email, sandi awal sama = <b>{{ \App\Models\User::PASSWORD_DEFAULT }}</b>, wajib diganti).
+    Peserta jalur internal langsung tercatat <b>Diterima</b> dan Surat Balasan Ijin Prakerin bisa dibuat dari menu Lamaran Masuk.
   </div>
 
   {{-- Error --}}
@@ -47,9 +49,9 @@
           <input name="nis_nim" value="{{ old('nis_nim') }}" required placeholder="Dipakai peserta untuk login" class="{{ $inp }} @if($err('nis_nim')) border-red-300 @endif">
         </div>
         <div>
-          <label class="{{ $lbl }}">Jenis Kelamin</label>
-          <select name="jenis_kelamin" class="{{ $inp }}">
-            <option value="">—</option>
+          <label class="{{ $lbl }}">Jenis Kelamin <span class="text-red-500">*</span></label>
+          <select name="jenis_kelamin" required class="{{ $inp }} @if($err('jenis_kelamin')) border-red-300 @endif">
+            <option value="">Pilih</option>
             <option value="L" @selected(old('jenis_kelamin') === 'L')>Laki-laki</option>
             <option value="P" @selected(old('jenis_kelamin') === 'P')>Perempuan</option>
           </select>
@@ -62,12 +64,12 @@
           </select>
         </div>
         <div>
-          <label class="{{ $lbl }}">Email <span class="font-normal text-slate-400">(opsional)</span></label>
-          <input type="email" name="email" value="{{ old('email') }}" class="{{ $inp }} @if($err('email')) border-red-300 @endif">
+          <label class="{{ $lbl }}">Email <span class="text-red-500">*</span> <span class="font-normal text-slate-400">(untuk login Dashboard Peserta)</span></label>
+          <input type="email" name="email" value="{{ old('email') }}" required class="{{ $inp }} @if($err('email')) border-red-300 @endif">
         </div>
         <div>
           <label class="{{ $lbl }}">No. WhatsApp <span class="font-normal text-slate-400">(opsional)</span></label>
-          <input name="no_wa" value="{{ old('no_wa') }}" inputmode="tel" class="{{ $inp }}">
+          <input name="no_wa" value="{{ old('no_wa') }}" inputmode="tel" maxlength="20" placeholder="6-15 digit" class="{{ $inp }} @if($err('no_wa')) border-red-300 @endif">
         </div>
       </div>
     </section>
@@ -121,7 +123,7 @@
     </section>
 
     {{-- Tambahan --}}
-    <details class="border border-slate-200 rounded-xl shadow-sm p-5" @if($errors->hasAny(['no_ktp','tanggal_lahir','foto_pas','cv_path','surat_permohonan_path'])) open @endif>
+    <details class="border border-slate-200 rounded-xl shadow-sm p-5" @if($errors->hasAny(['no_ktp','tanggal_lahir','foto_pas','cv_path','surat_permohonan_path','no_wa_pembimbing'])) open @endif>
       <summary class="text-sm font-bold cursor-pointer">Data Tambahan <span class="font-normal text-slate-400 text-xs">(opsional, bisa dilengkapi nanti lewat Edit Peserta)</span></summary>
       <div class="grid md:grid-cols-2 gap-4 mt-4">
         <div>
@@ -130,7 +132,7 @@
         </div>
         <div>
           <label class="{{ $lbl }}">WhatsApp Pembimbing</label>
-          <input name="no_wa_pembimbing" value="{{ old('no_wa_pembimbing') }}" inputmode="tel" class="{{ $inp }}">
+          <input name="no_wa_pembimbing" value="{{ old('no_wa_pembimbing') }}" inputmode="tel" maxlength="20" placeholder="6-15 digit" class="{{ $inp }} @if($err('no_wa_pembimbing')) border-red-300 @endif">
         </div>
         <div>
           <label class="{{ $lbl }}">No. KTP</label>

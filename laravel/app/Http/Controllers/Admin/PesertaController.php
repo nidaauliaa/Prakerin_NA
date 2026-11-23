@@ -31,7 +31,12 @@ class PesertaController extends Controller
 
     public function store(Request $r)
     {
-        $r->merge(['no_ktp' => preg_replace('/\D/', '', (string)$r->no_ktp) ?: null]);
+        $r->merge([
+            'no_ktp'           => preg_replace('/\D/', '', (string)$r->no_ktp) ?: null,
+            // No. HP: spasi, strip, titik, kurung dibuang; aturan 6-15 digit dicek di validasi
+            'no_wa'            => preg_replace('/[\s\-\.\(\)]/', '', (string)$r->no_wa) ?: null,
+            'no_wa_pembimbing' => preg_replace('/[\s\-\.\(\)]/', '', (string)$r->no_wa_pembimbing) ?: null,
+        ]);
 
         // Wajib hanya: nama, NIS/NIM, departemen, tanggal mulai & selesai.
         // Sisanya boleh kosong dan dilengkapi nanti lewat Edit Peserta (sama seperti peserta hasil import Excel).
@@ -39,16 +44,16 @@ class PesertaController extends Controller
             'tipe_magang' => 'required|in:smk,kuliah',
             'nama' => 'required|string|max:150',
             'nis_nim' => 'required|string|max:50|unique:users,nis_nim',
-            'email' => 'nullable|email|max:255|unique:users,email',
-            'no_wa' => 'nullable|string|max:20',
-            'jenis_kelamin' => 'nullable|in:L,P',
+            'email' => 'required|email|max:255|unique:users,email',
+            'no_wa' => ['nullable', 'regex:/^\+?\d{6,15}$/'],
+            'jenis_kelamin' => 'required|in:L,P',
             'asal_sekolah' => 'nullable|string|max:150',
             'jurusan' => 'nullable|string|max:150',
             'departemen_id' => 'required|exists:departemen,id',
             'divisi' => 'nullable|string|max:100',
             'tempat_prakerin' => 'nullable|string|max:100',
             'pembimbing' => 'nullable|string|max:150',
-            'no_wa_pembimbing' => 'nullable|string|max:20',
+            'no_wa_pembimbing' => ['nullable', 'regex:/^\+?\d{6,15}$/'],
             'tgl_mulai' => 'required|date',
             'tgl_selesai' => 'required|date|after_or_equal:tgl_mulai',
             'keterangan' => 'nullable|string|max:255',
@@ -70,11 +75,14 @@ class PesertaController extends Controller
             'after_or_equal' => ':attribute tidak boleh sebelum tanggal mulai.',
             'before' => ':attribute harus sebelum hari ini.',
             'exists' => ':attribute tidak valid.',
+            'regex' => ':attribute harus 6-15 digit angka.',
+            'in' => ':attribute tidak valid.',
         ], [
             'nama' => 'Nama lengkap', 'nis_nim' => 'NIS/NIM', 'email' => 'Email', 'no_wa' => 'No. WhatsApp',
             'departemen_id' => 'Departemen', 'tgl_mulai' => 'Tanggal mulai', 'tgl_selesai' => 'Tanggal selesai',
             'tipe_magang' => 'Tipe magang', 'no_ktp' => 'No. KTP', 'tanggal_lahir' => 'Tanggal lahir',
             'foto_pas' => 'Foto', 'cv_path' => 'CV', 'surat_permohonan_path' => 'Surat permohonan',
+            'jenis_kelamin' => 'Jenis kelamin', 'no_wa_pembimbing' => 'No. WhatsApp pembimbing',
         ]);
 
         // Samakan format dengan data hasil import: "04/05/2026 - 04/11/2026"
@@ -85,8 +93,12 @@ class PesertaController extends Controller
         $cv = $r->hasFile('cv_path') ? $r->file('cv_path')->store('peserta/cv', 'public') : null;
         $surat = $r->hasFile('surat_permohonan_path') ? $r->file('surat_permohonan_path')->store('peserta/surat', 'public') : null;
 
+        $akunPortal = null;
+        $otomatis   = 0;
+        $privat     = [];   // salinan berkas di disk privat (untuk Dashboard Peserta)
+
         try {
-            $user = DB::transaction(function () use ($data, $foto, $cv, $surat) {
+            $user = DB::transaction(function () use ($data, $foto, $cv, $surat, &$akunPortal, &$otomatis, &$privat) {
                 $uuid = (string)Str::uuid();
 
                 $user = User::create([
@@ -105,7 +117,7 @@ class PesertaController extends Controller
                     'jurusan' => $data['jurusan'] ?? null,
                 ]);
 
-                DataMagang::create([
+                $dm = DataMagang::create([
                     'nama' => $data['nama'],
                     'tipe_magang' => $data['tipe_magang'],
                     'jenis_kelamin' => $data['jenis_kelamin'] ?? null,
@@ -136,15 +148,81 @@ class PesertaController extends Controller
                     'status_magang' => 'ACTIVE',
                 ]);
 
+                // ---- JALUR INTERNAL: HRD yang memasukkan peserta (mis. dari surat permohonan sekolah).
+                // Peserta tetap mendapat akun Dashboard Peserta (login email) + riwayat berstatus "diterima",
+                // sehingga profil, notifikasi, dan Surat Balasan Ijin Prakerin berjalan sama seperti jalur portal.
+                $email   = mb_strtolower($data['email']);
+                $pelamar = \App\Models\Pelamar::where('email', $email)->first();
+
+                if ($pelamar && $pelamar->sudahDiterima()) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'email' => 'Email ini milik pelamar yang sudah diterima di posisi lain (satu pelamar hanya bisa diterima di satu posisi).',
+                    ]);
+                }
+
+                $akunPortal = ['email' => $email, 'baru' => ! $pelamar];
+                $pelamar ??= \App\Models\Pelamar::create([
+                    'nama'                 => $data['nama'],
+                    'email'                => $email,
+                    'password'             => User::PASSWORD_DEFAULT,   // di-hash oleh cast 'hashed'
+                    'wajib_ganti_password' => true,
+                ]);
+
+                $salin = function (?string $path, string $folder) use (&$privat) {
+                    if (! $path || ! Storage::disk('public')->exists($path)) {
+                        return null;
+                    }
+                    $baru = $folder . '/' . Str::uuid() . '.' . pathinfo($path, PATHINFO_EXTENSION);
+                    Storage::disk('local')->writeStream($baru, Storage::disk('public')->readStream($path));
+
+                    return $privat[] = $baru;
+                };
+
+                $lamaran = \App\Models\Lamaran::create([
+                    'jalur'                 => 'internal',
+                    'lowongan_id'           => null,
+                    'pelamar_id'            => $pelamar->id,
+                    'tipe_magang'           => $data['tipe_magang'],
+                    'nama'                  => $data['nama'],
+                    'jenis_kelamin'         => $data['jenis_kelamin'],
+                    'email'                 => $email,
+                    'no_wa'                 => $data['no_wa'] ?? null,
+                    'alamat'                => $data['alamat'] ?? null,
+                    'foto_pas'              => $salin($foto, 'lamaran/foto'),
+                    'asal_sekolah'          => $data['asal_sekolah'] ?? null,
+                    'jurusan'               => $data['jurusan'] ?? null,
+                    'pembimbing'            => $data['pembimbing'] ?? null,
+                    'no_wa_pembimbing'      => $data['no_wa_pembimbing'] ?? null,
+                    'cv_path'               => $salin($cv, 'lamaran/cv'),
+                    'surat_permohonan_path' => $salin($surat, 'lamaran/surat'),
+                    'nis_nim'               => $data['nis_nim'],
+                    'tgl_mulai'             => $data['tgl_mulai'],
+                    'tgl_selesai'           => $data['tgl_selesai'],
+                    'status'                => 'diterima',
+                    'diputuskan_oleh'       => config('auth.guards.admin') ? \Illuminate\Support\Facades\Auth::guard('admin')->id() : null,
+                    'diputuskan_pada'       => now(),
+                    'data_magang_id'        => $dm->id,
+                ]);
+
+                // Hanya bisa diterima di 1 posisi: lamaran portal lain milik email ini yang masih menunggu ditolak otomatis.
+                $otomatis = \App\Models\Lamaran::tolakLainnyaOtomatis($lamaran, $lamaran->diputuskan_oleh);
+
                 return $user;
             });
         } catch (\Throwable $e) {
             Storage::disk('public')->delete(array_filter([$foto, $cv, $surat]));
+            Storage::disk('local')->delete($privat);
             throw $e;
         }
 
         return redirect()->route('admin.aktif.index')
-            ->with('success', 'Peserta berhasil ditambahkan.')
+            ->with('success', 'Peserta berhasil ditambahkan (jalur internal). Akun presensi: login NIS/NIM, sandi awal ' . User::PASSWORD_DEFAULT
+                . '. Akun Dashboard Peserta: login email ' . $akunPortal['email']
+                . ($akunPortal['baru']
+                    ? ', sandi awal ' . User::PASSWORD_DEFAULT . ' (wajib diganti saat login pertama).'
+                    : ' (memakai akun portal yang sudah ada).')
+                . ($otomatis ? " {$otomatis} lamaran lain milik email ini otomatis ditolak." : '')
+                . ' Surat Balasan Ijin Prakerin bisa dibuat di menu Lamaran Masuk > filter Diterima.')
             ->with('qr_peserta_id', $user->id);
     }
 
@@ -190,7 +268,12 @@ class PesertaController extends Controller
 
         $dm = DataMagang::where('user_id', $peserta->id)->first() ?? new DataMagang();
 
-        $r->merge(['no_ktp' => preg_replace('/\D/', '', (string)$r->no_ktp) ?: null]);
+        $r->merge([
+            'no_ktp'           => preg_replace('/\D/', '', (string)$r->no_ktp) ?: null,
+            // No. HP: spasi, strip, titik, kurung dibuang; aturan 6-15 digit dicek di validasi
+            'no_wa'            => preg_replace('/[\s\-\.\(\)]/', '', (string)$r->no_wa) ?: null,
+            'no_wa_pembimbing' => preg_replace('/[\s\-\.\(\)]/', '', (string)$r->no_wa_pembimbing) ?: null,
+        ]);
 
         // Hampir semua field nullable: peserta hasil import Excel belum punya NIK, alamat, dll.
         $data = $r->validate([
@@ -198,7 +281,7 @@ class PesertaController extends Controller
             'nama' => 'required|string|max:150',
             'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($peserta->id)],
             'no_ktp' => 'nullable|digits:16',
-            'no_wa' => 'nullable|string|max:20',
+            'no_wa' => ['nullable', 'regex:/^\+?\d{6,15}$/'],
             'alamat' => 'nullable|string',
             'tempat_lahir' => 'nullable|string|max:100',
             'tanggal_lahir' => 'nullable|date|before:today',
@@ -207,7 +290,7 @@ class PesertaController extends Controller
             'asal_sekolah' => 'nullable|string|max:150',
             'jurusan' => 'nullable|string|max:150',
             'pembimbing' => 'nullable|string|max:150',
-            'no_wa_pembimbing' => 'nullable|string|max:20',
+            'no_wa_pembimbing' => ['nullable', 'regex:/^\+?\d{6,15}$/'],
             'departemen_id' => 'required|exists:departemen,id',
             'divisi' => 'nullable|string|max:100',
             'periode_magang' => 'nullable|string|max:100',
@@ -221,8 +304,10 @@ class PesertaController extends Controller
         ], [
             'required' => ':attribute wajib diisi.',
             'unique' => ':attribute sudah terdaftar.',
+            'regex' => ':attribute harus 6-15 digit angka.',
         ], [
             'nama' => 'Nama lengkap', 'nis_nim' => 'NIS/NIM', 'departemen_id' => 'Departemen', 'tipe_magang' => 'Tipe magang',
+            'no_wa' => 'No. WhatsApp', 'no_wa_pembimbing' => 'No. WhatsApp pembimbing',
         ]);
 
         // Simpan berkas baru (kalau ada). Berkas lama baru dihapus setelah database berhasil diperbarui.
