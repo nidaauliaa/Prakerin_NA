@@ -192,14 +192,14 @@
                                 <div class="flex flex-wrap items-start justify-between gap-2">
                                     <div>
                                         <h3 class="text-sm font-bold text-slate-900">{{ $l->lowongan?->judul ?? 'Penempatan langsung HRD (Internal)' }}</h3>
-                                        <p class="text-[11px] text-slate-400 mt-0.5">Kode: <strong class="text-slate-600">{{ $l->kode }}</strong> &middot; Dikirim {{ $tgl($l->created_at, 'j M Y') }}</p>
+                                        <p class="text-[11px] text-slate-400 mt-0.5">Dikirim {{ $tgl($l->created_at, 'j M Y') }}</p>
                                     </div>
                                     <span class="px-2.5 py-1 rounded-md text-[11px] font-bold {{ $kelas }}">{{ $label }}</span>
                                 </div>
 
                                 <div class="grid grid-cols-2 gap-3 mt-3 text-xs">
                                     <div>
-                                        <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Periode diajukan</span>
+                                        <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Periode Prakerin yang diajukan</span>
                                         <span class="font-semibold text-slate-700">{{ $tgl($l->tgl_mulai, 'j M Y') }} s/d {{ $tgl($l->tgl_selesai, 'j M Y') }}</span>
                                     </div>
                                     <div>
@@ -212,7 +212,7 @@
                                     <p class="mt-3 text-xs bg-rose-50 border border-rose-100 text-rose-800 rounded-lg px-3 py-2"><strong>Catatan HRD:</strong> {{ $l->catatan_admin }}</p>
                                 @endif
 
-                                @if ($l->status === 'diterima')
+                                {{-- @if ($l->status === 'diterima')
                                     <div class="mt-3">
                                         @if ($l->suratBalasan)
                                             <a href="{{ route('pelamar.surat', $l) }}" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-brand-blue text-white text-xs font-bold transition">
@@ -222,7 +222,7 @@
                                             <span class="text-[11px] text-slate-400 italic"><i class="fa-regular fa-clock mr-1"></i> Surat balasan sedang disiapkan HRD</span>
                                         @endif
                                     </div>
-                                @endif
+                                @endif --}}
                             </div>
                         @empty
                             <p class="text-xs text-slate-400 italic">Belum ada lamaran. Pilih posisi di halaman lowongan untuk mulai mendaftar.</p>
