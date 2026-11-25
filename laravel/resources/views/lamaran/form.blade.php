@@ -14,10 +14,9 @@
             <!-- Ringkasan posisi & periode -->
             <div class="p-6 bg-slate-50 border-b border-slate-200">
                 <span class="inline-block px-2.5 py-0.5 rounded text-[11px] font-extrabold uppercase mb-1 {{ $isSmk ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-brand-blue' }}">
-                    {{ $isSmk ? 'Anak SMK' : 'Mahasiswa' }}
+                    {{ $isSmk ? 'SMK' : 'Mahasiswa' }}
                 </span>
                 <h1 class="text-xl font-bold text-slate-900">{{ $lowongan->judul }}</h1>
-                <p class="text-xs text-slate-500 mt-1"><i class="fa-solid fa-location-dot text-rose-500 mr-1"></i> Kota Alokasi: <strong>Magelang (PT MAJ)</strong></p>
 
                 <div class="grid grid-cols-3 gap-3 mt-4 text-xs">
                     <div class="bg-white border border-slate-200 rounded-lg p-3">

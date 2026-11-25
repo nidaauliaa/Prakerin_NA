@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Divisi;
 use App\Models\Lowongan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -31,15 +32,18 @@ class LowonganAdminController extends Controller
                 'id'               => $l->id,
                 'judul'            => $l->judul,
                 'tipe_magang'      => $l->tipe_magang,
-                'departemen_id'    => $l->departemen_id,
+                'divisi_id'        => $l->divisi_id,
                 'kuota'            => $l->kuota,
-                'lokasi'           => $l->lokasi,
                 'jurusan_diterima' => $l->jurusan_diterima,
                 'deskripsi'        => $l->deskripsi,
                 'status'           => $l->status,
                 'batas_pendaftaran' => $l->batas_pendaftaran?->toDateString(),
             ])->values(),
-            'departemen' => DB::table('departemen')->orderBy('nama')->get(['id', 'nama']),
+            // Sumber dropdown "Nama Posisi": section/divisi, dikelompokkan per departemen.
+            'divisi'     => Divisi::with('departemen:id,nama')
+                ->get(['id', 'departemen_id', 'nama', 'jurusan'])
+                ->sortBy(fn ($d) => ($d->departemen?->nama ?? '') . '|' . $d->nama)
+                ->values(),
         ]);
     }
 
@@ -87,21 +91,23 @@ class LowonganAdminController extends Controller
     private function validasi(Request $request): array
     {
         $data = $request->validate([
-            'judul'             => ['required', 'string', 'max:150'],
+            'divisi_id'         => ['required', 'integer', 'exists:divisi,id'],
             'tipe_magang'       => ['required', Rule::in(['smk', 'kuliah'])],
-            'departemen_id'     => ['nullable', 'integer', 'exists:departemen,id'],
             'kuota'             => ['required', 'integer', 'min:1', 'max:100'],
-            'lokasi'            => ['nullable', 'string', 'max:100'],
-            'jurusan_diterima'  => ['nullable', 'string', 'max:1000'],
+            'jurusan_diterima'  => ['nullable', 'string', 'max:2000'],
             'deskripsi'         => ['nullable', 'string', 'max:2000'],
             'status'            => ['required', Rule::in(['draft', 'dibuka', 'ditutup'])],
             'batas_pendaftaran' => ['nullable', 'date'],
         ], [
-            'judul.required' => 'Nama posisi wajib diisi.',
-            'kuota.min'      => 'Kuota minimal 1 orang.',
+            'divisi_id.required' => 'Nama posisi wajib dipilih.',
+            'divisi_id.exists'   => 'Posisi yang dipilih tidak valid.',
+            'kuota.min'          => 'Kuota minimal 1 orang.',
         ]);
 
-        $data['lokasi'] = $data['lokasi'] ?? 'Magelang';   // kolom lokasi tidak boleh NULL
+        // Nama posisi & departemen mengikuti section yang dipilih (bukan diketik manual).
+        $divisi = Divisi::findOrFail($data['divisi_id']);
+        $data['judul']         = $divisi->nama;
+        $data['departemen_id'] = $divisi->departemen_id;
 
         return $data;
     }

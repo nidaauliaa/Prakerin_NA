@@ -24,7 +24,7 @@ class BerandaController extends Controller
             'id'            => $l->id,
             'title'         => $l->judul,
             'category'      => $l->tipe_magang === 'kuliah' ? 'mahasiswa' : 'smk',
-            'categoryLabel' => $l->tipe_magang === 'kuliah' ? 'Mahasiswa' : 'Anak SMK',
+            'categoryLabel' => $l->tipe_magang === 'kuliah' ? 'Mahasiswa' : 'SMK',
             'maxQuota'      => $l->kuota,
             'major'         => $l->jurusan_diterima ?? '-',
             'description'   => $l->deskripsi ?? '',

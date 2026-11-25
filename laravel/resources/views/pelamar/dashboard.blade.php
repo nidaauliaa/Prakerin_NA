@@ -70,7 +70,7 @@
                         <p class="text-xs text-slate-500 break-all">{{ $pelamar->email }}</p>
                         @if ($profil)
                             <span class="inline-block mt-1.5 px-2 py-0.5 rounded text-[10px] font-extrabold uppercase {{ $smk ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-brand-blue' }}">
-                                {{ $smk ? 'Anak SMK' : 'Mahasiswa (D3/S1)' }}
+                                {{ $smk ? 'SMK' : 'Mahasiswa (D3/S1)' }}
                             </span>
                         @endif
                         <a href="{{ route('pelamar.profil.edit') }}" class="block mt-2 text-[11px] font-bold text-brand-blue hover:underline"><i class="fa-solid fa-pen-to-square mr-1"></i>{{ $profil ? 'Ubah Profil' : 'Lengkapi Profil' }}</a>
@@ -142,9 +142,9 @@
                                 <p class="font-extrabold text-sm">Selamat, {{ $pelamar->nama_depan }}! Pengajuan prakerin Anda disetujui.</p>
                                 <p class="mt-0.5">
                                     @if ($l->lowongan)
-                                        Lamaran untuk posisi <strong>{{ $l->lowongan->judul }}</strong> telah disetujui HRD PT Mekar Armada Jaya.
+                                        Lamaran untuk posisi <strong>{{ $l->nama_posisi }}</strong> telah disetujui HRD PT Mekar Armada Jaya.
                                     @else
-                                        Anda telah didaftarkan langsung oleh HRD PT Mekar Armada Jaya sebagai peserta prakerin.
+                                        Anda telah terdaftar sebagai peserta prakerin PT Mekar Armada Jaya pada posisi <strong>{{ $l->nama_posisi }}</strong>.
                                     @endif
                                     Periode magang: <strong>{{ $tgl($l->tgl_mulai, 'j M Y') }}</strong> s/d <strong>{{ $tgl($l->tgl_selesai, 'j M Y') }}</strong>.
                                 </p>
@@ -191,7 +191,7 @@
                             <div class="rounded-xl border border-slate-200 p-4">
                                 <div class="flex flex-wrap items-start justify-between gap-2">
                                     <div>
-                                        <h3 class="text-sm font-bold text-slate-900">{{ $l->lowongan?->judul ?? 'Penempatan langsung HRD (Internal)' }}</h3>
+                                        <h3 class="text-sm font-bold text-slate-900">{{ $l->nama_posisi }}</h3>
                                         <p class="text-[11px] text-slate-400 mt-0.5">Dikirim {{ $tgl($l->created_at, 'j M Y') }}</p>
                                     </div>
                                     <span class="px-2.5 py-1 rounded-md text-[11px] font-bold {{ $kelas }}">{{ $label }}</span>
@@ -258,7 +258,7 @@
                         <div>
                             <h2 class="text-sm font-bold text-slate-900">Surat Keterangan Prakerin</h2>
                             <p class="text-[11px] text-slate-500 mt-0.5">
-                                {{ $l->lowongan?->judul ?? '-' }} &middot; {{ $tgl($l->tgl_mulai, 'j M Y') }} s/d {{ $tgl($l->tgl_selesai, 'j M Y') }}
+                                {{ $l->nama_posisi }} &middot; {{ $tgl($l->tgl_mulai, 'j M Y') }} s/d {{ $tgl($l->tgl_selesai, 'j M Y') }}
                             </p>
                         </div>
                         @if ($siap)

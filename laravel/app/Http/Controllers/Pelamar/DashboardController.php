@@ -26,7 +26,7 @@ class DashboardController extends Controller
         $pelamar = Auth::guard('pelamar')->user();
 
         $riwayat = $pelamar->lamaran()
-            ->with(['lowongan' => fn ($q) => $q->withTrashed(), 'suratBalasan', 'dataMagang.suratKeterangan'])
+            ->with(['lowongan' => fn ($q) => $q->withTrashed(), 'divisi', 'suratBalasan', 'dataMagang.suratKeterangan'])
             ->latest('id')
             ->get();
 

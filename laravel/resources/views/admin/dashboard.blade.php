@@ -85,7 +85,7 @@
                             <div class="w-10 h-10 rounded-full {{ $smk ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-brand-blue' }} font-black text-xs flex items-center justify-center">{{ $smk ? 'SMK' : 'D3/S1' }}</div>
                             <div>
                                 <h4 class="text-xs font-bold text-slate-900">{{ $l->nama }}</h4>
-                                <p class="text-[11px] text-slate-500">Posisi: <span class="font-semibold text-slate-700">{{ $l->lowongan?->judul ?? '-' }}</span> | {{ $l->asal_sekolah }}</p>
+                                <p class="text-[11px] text-slate-500">Posisi: <span class="font-semibold text-slate-700">{{ $l->nama_posisi }}</span> | {{ $l->asal_sekolah }}</p>
                                 <p class="text-[10px] text-slate-400 mt-0.5"><i class="fa-regular fa-clock mr-1"></i> Tgl Daftar: {{ $l->created_at->translatedFormat('d M Y') }}</p>
                             </div>
                         </div>

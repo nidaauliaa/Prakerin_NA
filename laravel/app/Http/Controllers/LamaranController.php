@@ -200,7 +200,7 @@ class LamaranController extends Controller
     private function lamarDenganProfil(Pelamar $pelamar, Lowongan $lowongan, Carbon $mulai, Carbon $selesai)
     {
         $profil = $pelamar->profil();
-        $label  = fn (string $t) => $t === 'smk' ? 'Anak SMK' : 'Mahasiswa';
+        $label  = fn (string $t) => $t === 'smk' ? 'SMK' : 'Mahasiswa';
         $kembali = route('beranda') . '#lowongan';
 
         // Profil mengikuti jenjang lamaran pertama (SMK / Mahasiswa): syarat berkas keduanya berbeda.

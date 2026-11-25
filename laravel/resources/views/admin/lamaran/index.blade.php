@@ -16,7 +16,7 @@
             </a>
             <select name="tipe" onchange="this.form.submit()" class="bg-white border border-slate-300 text-xs font-semibold rounded-xl px-3 py-2 focus:ring-2 focus:ring-brand-blue">
                 <option value="semua" @selected($tipe === 'semua')>Semua Jenjang (SMK &amp; D3/S1)</option>
-                <option value="smk" @selected($tipe === 'smk')>Khusus Anak SMK</option>
+                <option value="smk" @selected($tipe === 'smk')>Khusus SMK</option>
                 <option value="kuliah" @selected($tipe === 'kuliah')>Khusus D3 / S1</option>
             </select>
 
@@ -68,7 +68,7 @@
                                 <span class="ml-1 text-slate-700 font-medium">{{ $l->asal_sekolah }}</span>
                             </td>
                             <td class="p-4 font-semibold text-slate-800">
-                                {{ $l->lowongan?->judul ?? 'Penempatan langsung HRD' }}
+                                {{ $l->nama_posisi }}
                                 @if ($l->adalahInternal())
                                     <span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-violet-100 text-violet-700">Internal</span>
                                 @endif
@@ -128,6 +128,7 @@
                     <div><span class="text-slate-400 block">Email:</span><strong id="mEmail" class="text-slate-800 break-all"></strong></div>
                     <div><span class="text-slate-400 block">No. WhatsApp Peserta:</span><strong id="mWa" class="text-slate-800"></strong></div>
                     <div><span id="mAsalLabel" class="text-slate-400 block"></span><strong id="mAsal" class="text-slate-800"></strong></div>
+                    <div><span id="mNisLabel" class="text-slate-400 block"></span><strong id="mNis" class="text-slate-800"></strong></div>
                     <div><span class="text-slate-400 block">Jurusan:</span><strong id="mJurusan" class="text-slate-800"></strong></div>
                     <div><span class="text-slate-400 block">Jenis Kelamin:</span><strong id="mJk" class="text-slate-800"></strong></div>
                     <div class="col-span-2"><span class="text-slate-400 block">Alamat Domisili:</span><strong id="mAlamat" class="text-slate-800"></strong></div>
@@ -330,7 +331,7 @@
 
         $('modalApplicantName').textContent = app.nama;
         $('modalApplicantPosition').textContent = 'Posisi Dilamar: ' + app.posisi;
-        $('modalApplicantBadge').textContent = app.smk ? 'Anak SMK' : 'Diploma / Sarjana';
+        $('modalApplicantBadge').textContent = app.smk ? 'SMK' : 'Diploma / Sarjana';
         $('modalApplicantBadge').className = 'inline-block px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase mb-1 text-slate-900 '
             + (app.smk ? 'bg-amber-400' : 'bg-sky-300');
 
@@ -338,6 +339,8 @@
         $('mWa').textContent = app.wa;
         $('mAsalLabel').textContent = app.asalLabel + ':';
         $('mAsal').textContent = app.asal;
+        $('mNisLabel').textContent = (app.smk ? 'NIS' : 'NIM') + ':';
+        $('mNis').textContent = app.nisNim || '-';
         $('mJurusan').textContent = app.jurusan || '-';
         $('mJk').textContent = app.jk;
         $('mAlamat').textContent = app.alamat;

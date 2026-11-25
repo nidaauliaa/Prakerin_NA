@@ -43,7 +43,6 @@
                         <tr class="hover:bg-slate-50 transition">
                             <td class="p-4">
                                 <span class="font-bold text-slate-900 block">{{ $l->judul }}</span>
-                                <span class="text-[11px] text-slate-400"><i class="fa-solid fa-location-dot text-rose-400 mr-1"></i>{{ $l->lokasi }}</span>
                             </td>
                             <td class="p-4">
                                 @if ($smk)
@@ -115,15 +114,25 @@
 
             <div class="p-6 space-y-4 overflow-y-auto custom-scrollbar text-xs">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Posisi <span class="text-rose-500">*</span></label>
-                    <input type="text" name="judul" id="fJudul" required maxlength="150" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Posisi (Section) <span class="text-rose-500">*</span></label>
+                    <select name="divisi_id" id="fDivisi" required class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
+                        <option value="">- Pilih posisi -</option>
+                        @foreach ($divisi->groupBy(fn ($d) => $d->departemen?->nama ?? 'Tanpa departemen') as $namaDept => $daftar)
+                            <optgroup label="{{ $namaDept }}">
+                                @foreach ($daftar as $d)
+                                    <option value="{{ $d->id }}">{{ $d->nama }}</option>
+                                @endforeach
+                            </optgroup>
+                        @endforeach
+                    </select>
+                    <p class="text-[11px] text-slate-400 mt-1">Pilihan diambil dari daftar section. Departemen dan kualifikasi jurusan terisi otomatis.</p>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Jenjang <span class="text-rose-500">*</span></label>
                         <select name="tipe_magang" id="fTipe" required class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
-                            <option value="smk">Anak SMK</option>
+                            <option value="smk">SMK</option>
                             <option value="kuliah">Mahasiswa (D3/S1)</option>
                         </select>
                     </div>
@@ -143,13 +152,8 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Departemen <span class="text-slate-400 font-normal">(opsional)</span></label>
-                        <select name="departemen_id" id="fDept" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
-                            <option value="">- Belum ditentukan -</option>
-                            @foreach ($departemen as $d)
-                                <option value="{{ $d->id }}">{{ $d->nama }}</option>
-                            @endforeach
-                        </select>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Departemen <span class="text-slate-400 font-normal">(otomatis dari section)</span></label>
+                        <input type="text" id="fDept" readonly tabindex="-1" placeholder="-" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm text-slate-600">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Batas Pendaftaran <span class="text-slate-400 font-normal">(opsional)</span></label>
@@ -158,13 +162,9 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Kota Alokasi</label>
-                    <input type="text" name="lokasi" id="fLokasi" maxlength="100" placeholder="Magelang" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
-                </div>
-
-                <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Kualifikasi Jurusan</label>
-                    <input type="text" name="jurusan_diterima" id="fJurusan" maxlength="1000" placeholder="Contoh: SMK Teknik Mesin / Otomotif" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue">
+                    <textarea name="jurusan_diterima" id="fJurusan" rows="2" maxlength="2000" placeholder="Terisi otomatis setelah posisi dipilih, bisa diubah di sini" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue"></textarea>
+                    <p class="text-[11px] text-slate-400 mt-1">Bisa diedit langsung. Perubahan hanya berlaku untuk lowongan ini, daftar section tidak ikut berubah.</p>
                 </div>
 
                 <div>
@@ -187,21 +187,31 @@
 @push('scripts')
 <script>
     const posisi = @json($rows);
+    const divisiData = @json($divisi->mapWithKeys(fn ($d) => [$d->id => ['dept' => $d->departemen?->nama, 'jurusan' => $d->jurusan]]));
     const urlStore  = @json(route('admin.lowongan.store'));
     const urlUpdate = @json(route('admin.lowongan.update', ['lowongan' => '__ID__']));
     const el = (id) => document.getElementById(id);
 
     function isiForm(d) {
-        el('fJudul').value = d.judul ?? '';
+        el('fDivisi').value = d.divisi_id ?? '';
+        tampilDept();
         el('fTipe').value = d.tipe_magang ?? 'smk';
         el('fKuota').value = d.kuota ?? 1;
         el('fStatus').value = d.status ?? 'dibuka';
-        el('fDept').value = d.departemen_id ?? '';
         el('fBatas').value = d.batas_pendaftaran ?? '';
-        el('fLokasi').value = d.lokasi ?? '';
         el('fJurusan').value = d.jurusan_diterima ?? '';
         el('fDeskripsi').value = d.deskripsi ?? '';
     }
+
+    function tampilDept() {
+        el('fDept').value = divisiData[el('fDivisi').value]?.dept ?? '';
+    }
+
+    // Pilih section -> departemen & kualifikasi jurusan terisi otomatis (jurusan tetap bisa diedit).
+    el('fDivisi').addEventListener('change', () => {
+        tampilDept();
+        el('fJurusan').value = divisiData[el('fDivisi').value]?.jurusan ?? '';
+    });
 
     function bukaForm(id) {
         const edit = id !== null;
@@ -218,7 +228,7 @@
         el('formModal').classList.add('hidden');
     }
 
-    @if ($errors->any() && old('judul') !== null)
+    @if ($errors->any() && old('divisi_id') !== null)
         // Validasi gagal: buka lagi form dengan isian terakhir
         document.addEventListener('DOMContentLoaded', () => {
             const lama = @json(old());

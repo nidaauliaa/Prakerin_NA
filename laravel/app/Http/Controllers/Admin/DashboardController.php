@@ -40,7 +40,7 @@ class DashboardController extends Controller
                 'pending'          => $pending,
             ],
             'presensi' => compact('approved', 'izin', 'alpha', 'pending'),
-            'terbaru'  => Lamaran::with(['lowongan' => fn ($q) => $q->withTrashed()])
+            'terbaru'  => Lamaran::with(['lowongan' => fn ($q) => $q->withTrashed(), 'divisi', 'dataMagang'])
                 ->where('status', 'menunggu')
                 ->latest()
                 ->limit(5)

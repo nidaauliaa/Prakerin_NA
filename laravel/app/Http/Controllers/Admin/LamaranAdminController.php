@@ -27,7 +27,7 @@ class LamaranAdminController extends Controller
         $status = in_array($request->status, ['semua', 'menunggu', 'diterima', 'ditolak'], true)
             ? $request->status : 'menunggu';
 
-        $query = Lamaran::with(['lowongan' => fn ($q) => $q->withTrashed(), 'suratBalasan'])->latest();
+        $query = Lamaran::with(['lowongan' => fn ($q) => $q->withTrashed(), 'divisi', 'dataMagang', 'suratBalasan'])->latest();
         $tipe !== 'semua'   && $query->where('tipe_magang', $tipe);
         $status !== 'semua' && $query->where('status', $status);
 
@@ -37,7 +37,7 @@ class LamaranAdminController extends Controller
         // tidak ada di halaman ini, ikut disertakan.
         $baris = $lamaran->getCollection();
         if ($request->filled('buka') && ! $baris->contains('id', (int) $request->buka)) {
-            $tambahan = Lamaran::with(['lowongan' => fn ($q) => $q->withTrashed(), 'suratBalasan'])->find((int) $request->buka);
+            $tambahan = Lamaran::with(['lowongan' => fn ($q) => $q->withTrashed(), 'divisi', 'dataMagang', 'suratBalasan'])->find((int) $request->buka);
             $tambahan && $baris = $baris->push($tambahan);
         }
 
@@ -245,7 +245,7 @@ class LamaranAdminController extends Controller
             'id'            => $l->id,
             'nama'          => $l->nama,
             'smk'           => $smk,
-            'posisi'        => $l->lowongan?->judul ?? 'Penempatan langsung HRD (Internal)',
+            'posisi'        => $l->nama_posisi,
             'internal'         => $l->adalahInternal(),
             'jk'            => match ($l->jenis_kelamin) { 'L' => 'Laki-laki', 'P' => 'Perempuan', default => '-' },
             'jkKode'        => $l->jenis_kelamin,

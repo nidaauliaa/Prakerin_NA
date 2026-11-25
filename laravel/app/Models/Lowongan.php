@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -16,8 +17,8 @@ class Lowongan extends Model
     protected $table = 'lowongan';
 
     protected $fillable = [
-        'slug', 'judul', 'tipe_magang', 'departemen_id', 'deskripsi',
-        'jurusan_diterima', 'kuota', 'lokasi', 'status',
+        'slug', 'judul', 'tipe_magang', 'departemen_id', 'divisi_id', 'deskripsi',
+        'jurusan_diterima', 'kuota', 'status',
         'batas_pendaftaran', 'dibuat_oleh',
     ];
 
@@ -25,6 +26,11 @@ class Lowongan extends Model
         'kuota'             => 'integer',
         'batas_pendaftaran' => 'date',
     ];
+
+    public function divisi(): BelongsTo
+    {
+        return $this->belongsTo(Divisi::class, 'divisi_id');
+    }
 
     public function lamaran(): HasMany
     {

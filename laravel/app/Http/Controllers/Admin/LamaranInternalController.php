@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Departemen;
+use App\Models\Divisi;
 use App\Models\Pelamar;
 use App\Services\PesertaInternalService;
 use Illuminate\Http\Request;
@@ -13,7 +13,7 @@ use Illuminate\Validation\ValidationException;
 /**
  * Kelola Lamaran Masuk > "Tambah Peserta Internal".
  * Peserta internal membuat akun & mengisi profil sendiri lebih dulu; HRD mencarinya (nama / NIS-NIM),
- * lalu cukup memilih departemen dan periode.
+ * lalu cukup memilih posisi (section) dan periode.
  */
 class LamaranInternalController extends Controller
 {
@@ -35,7 +35,7 @@ class LamaranInternalController extends Controller
         return view('admin.lamaran.internal', compact('q', 'hasil'));
     }
 
-    /** Langkah 2: pilih departemen & periode. */
+    /** Langkah 2: pilih posisi (section) & periode. */
     public function form(Pelamar $pelamar, PesertaInternalService $layanan)
     {
         try {
@@ -47,19 +47,20 @@ class LamaranInternalController extends Controller
 
         return view('admin.lamaran.internal-form', [
             'pelamar'    => $pelamar,
-            'departemen' => Departemen::orderBy('nama')->get(['id', 'nama']),
+            'divisi'     => Divisi::with('departemen:id,nama')->get(['id', 'departemen_id', 'nama'])
+                ->sortBy(fn ($d) => ($d->departemen?->nama ?? '') . '|' . $d->nama)->values(),
         ]);
     }
 
     public function store(Request $request, Pelamar $pelamar, PesertaInternalService $layanan)
     {
         $data = $request->validate([
-            'departemen_id' => ['required', 'integer', 'exists:departemen,id'],
+            'divisi_id'     => ['required', 'integer', 'exists:divisi,id'],
             // Periode bebas: tidak ada batas minimal durasi untuk jalur internal.
             'tgl_mulai'     => ['required', 'date'],
             'tgl_selesai'   => ['required', 'date', 'after:tgl_mulai'],
         ], [
-            'departemen_id.required' => 'Departemen wajib dipilih.',
+            'divisi_id.required'     => 'Posisi (section) wajib dipilih.',
             'tgl_mulai.required'     => 'Tanggal mulai wajib diisi.',
             'tgl_selesai.required'   => 'Tanggal selesai wajib diisi.',
             'tgl_selesai.after'      => 'Tanggal selesai harus setelah tanggal mulai.',
@@ -68,7 +69,7 @@ class LamaranInternalController extends Controller
         try {
             $hasil = $layanan->buat(
                 $pelamar,
-                (int) $data['departemen_id'],
+                (int) $data['divisi_id'],
                 $data['tgl_mulai'],
                 $data['tgl_selesai'],
                 config('auth.guards.admin') ? Auth::guard('admin')->id() : null

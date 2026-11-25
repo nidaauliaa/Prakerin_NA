@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\DataMagang;
-use App\Models\Departemen;
+use App\Models\Divisi;
 use App\Models\Lamaran;
 use App\Models\Pelamar;
 use App\Models\User;
@@ -15,17 +15,18 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Jalur INTERNAL: HRD memasukkan peserta yang SUDAH punya akun portal & profil (dicari lewat nama / NIS-NIM).
- * HRD hanya memilih departemen dan periode (tanpa batas durasi). Dalam satu transaksi dibuat:
+ * HRD hanya memilih posisi (section) dan periode (tanpa batas durasi). Dalam satu transaksi dibuat:
  *  - akun presensi (users) + data_magang, memakai kata sandi akun portal peserta,
  *  - lamaran jalur internal berstatus "diterima" (muncul di riwayat & dashboard peserta, bisa dibuatkan surat balasan).
  */
 class PesertaInternalService
 {
-    public function buat(Pelamar $pelamar, int $departemenId, string $mulai, string $selesai, ?int $adminId): array
+    public function buat(Pelamar $pelamar, int $divisiId, string $mulai, string $selesai, ?int $adminId): array
     {
         $this->pastikanBisaDimasukkan($pelamar);
 
-        $departemen = Departemen::findOrFail($departemenId);
+        $divisi     = Divisi::with('departemen')->findOrFail($divisiId);
+        $departemen = $divisi->departemen;
         $publik     = Storage::disk('public');
         $privat     = Storage::disk('local');
 
@@ -45,7 +46,7 @@ class PesertaInternalService
         $surat = $salin($pelamar->surat_permohonan_path, 'peserta/surat');
 
         try {
-            return DB::transaction(function () use ($pelamar, $departemen, $mulai, $selesai, $adminId, $foto, $cv, $surat, $publik) {
+            return DB::transaction(function () use ($pelamar, $divisi, $departemen, $mulai, $selesai, $adminId, $foto, $cv, $surat, $publik) {
                 $uuid = (string) Str::uuid();
                 $tglMulai   = Carbon::parse($mulai);
                 $tglSelesai = Carbon::parse($selesai);
@@ -76,7 +77,7 @@ class PesertaInternalService
                     'asal_sekolah'          => $pelamar->asal_sekolah,
                     'jurusan'               => $pelamar->jurusan,
                     'departemen_id'         => $departemen->id,
-                    'divisi'                => $departemen->nama,
+                    'divisi'                => $divisi->nama,
                     'uuid'                  => $uuid,
                     'user_id'               => $user->id,
                     'ditautkan_pada'        => now(),
@@ -96,6 +97,7 @@ class PesertaInternalService
                 $lamaran = Lamaran::create([
                     'jalur'                 => 'internal',
                     'lowongan_id'           => null,
+                    'divisi_id'             => $divisi->id,
                     'pelamar_id'            => $pelamar->id,
                     'tipe_magang'           => $pelamar->tipe_magang,
                     'nama'                  => $pelamar->nama,

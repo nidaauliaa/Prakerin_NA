@@ -22,7 +22,7 @@
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
             <div><span class="text-slate-400 block">Nama</span><strong class="text-slate-800">{{ $pelamar->nama }}</strong></div>
             <div><span class="text-slate-400 block">{{ $smk ? 'NIS' : 'NIM' }}</span><strong class="text-slate-800">{{ $pelamar->nis_nim }}</strong></div>
-            <div><span class="text-slate-400 block">Jenjang</span><strong class="text-slate-800">{{ $smk ? 'Anak SMK' : 'Mahasiswa (D3/S1)' }}</strong></div>
+            <div><span class="text-slate-400 block">Jenjang</span><strong class="text-slate-800">{{ $smk ? 'SMK' : 'Mahasiswa (D3/S1)' }}</strong></div>
             <div><span class="text-slate-400 block">{{ $smk ? 'Asal Sekolah' : 'Asal Kampus' }}</span><strong class="text-slate-800">{{ $pelamar->asal_sekolah }}</strong></div>
             <div><span class="text-slate-400 block">Jurusan</span><strong class="text-slate-800">{{ $pelamar->jurusan }}</strong></div>
             <div><span class="text-slate-400 block">Jenis Kelamin</span><strong class="text-slate-800">{{ $jk }}</strong></div>
@@ -37,11 +37,15 @@
             <h2 class="text-sm font-bold text-slate-900"><i class="fa-regular fa-calendar-check text-brand-blue mr-2"></i>Penempatan &amp; Periode</h2>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div class="sm:col-span-3">
-                    <label class="{{ $lbl }}">Departemen <span class="text-rose-500">*</span></label>
-                    <select name="departemen_id" required class="{{ $inp }}">
-                        <option value="">- Pilih departemen -</option>
-                        @foreach ($departemen as $d)
-                            <option value="{{ $d->id }}" @selected((string) old('departemen_id') === (string) $d->id)>{{ $d->nama }}</option>
+                    <label class="{{ $lbl }}">Posisi (Section) <span class="text-rose-500">*</span></label>
+                    <select name="divisi_id" required class="{{ $inp }}">
+                        <option value="">- Pilih posisi -</option>
+                        @foreach ($divisi->groupBy(fn ($d) => $d->departemen?->nama ?? 'Tanpa departemen') as $namaDept => $daftar)
+                            <optgroup label="{{ $namaDept }}">
+                                @foreach ($daftar as $d)
+                                    <option value="{{ $d->id }}" @selected((string) old('divisi_id') === (string) $d->id)>{{ $d->nama }}</option>
+                                @endforeach
+                            </optgroup>
                         @endforeach
                     </select>
                 </div>

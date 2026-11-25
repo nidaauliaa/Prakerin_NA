@@ -22,7 +22,7 @@ class Lamaran extends Model
     public const STATUS_MENGISI_KUOTA = ['diterima'];
 
     protected $fillable = [
-        'uuid', 'kode', 'jalur', 'lowongan_id', 'pelamar_id', 'tipe_magang',
+        'uuid', 'kode', 'jalur', 'lowongan_id', 'divisi_id', 'pelamar_id', 'tipe_magang',
         'nama', 'jenis_kelamin', 'email', 'no_wa', 'alamat', 'foto_pas', 'asal_sekolah', 'jurusan',
         'pembimbing', 'no_wa_pembimbing', 'cv_path', 'surat_permohonan_path', 'nis_nim',
         'tgl_mulai', 'tgl_selesai',
@@ -46,6 +46,24 @@ class Lamaran extends Model
     public function lowongan(): BelongsTo
     {
         return $this->belongsTo(Lowongan::class, 'lowongan_id');
+    }
+
+    /** Section/divisi penempatan (diisi untuk jalur internal yang tanpa lowongan). */
+    public function divisi(): BelongsTo
+    {
+        return $this->belongsTo(Divisi::class, 'divisi_id');
+    }
+
+    /**
+     * Posisi yang ditampilkan: judul lowongan (jalur portal) atau nama section yang dipilih HRD (jalur internal).
+     * Data internal lama (belum punya divisi_id) memakai penempatan di data magang.
+     */
+    public function getNamaPosisiAttribute(): string
+    {
+        return $this->lowongan?->judul
+            ?? $this->divisi?->nama
+            ?? $this->dataMagang?->divisi
+            ?: '-';
     }
 
     public function pelamar(): BelongsTo

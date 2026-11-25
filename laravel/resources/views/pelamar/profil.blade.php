@@ -38,7 +38,7 @@
                     <div>
                         <label class="{{ $lbl }}">Jenjang <span class="text-rose-500">*</span></label>
                         <select name="tipe_magang" id="fTipe" required class="{{ $inp }}">
-                            <option value="smk" @selected($tipe === 'smk')>Anak SMK</option>
+                            <option value="smk" @selected($tipe === 'smk')>SMK</option>
                             <option value="kuliah" @selected($tipe === 'kuliah')>Mahasiswa (D3/S1)</option>
                         </select>
                     </div>
