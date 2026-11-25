@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Departemen;
 use App\Models\Divisi;
 use App\Models\Lowongan;
 use Illuminate\Http\Request;
@@ -39,6 +40,7 @@ class LowonganAdminController extends Controller
                 'status'           => $l->status,
                 'batas_pendaftaran' => $l->batas_pendaftaran?->toDateString(),
             ])->values(),
+            'departemen' => Departemen::orderBy('nama')->get(['id', 'nama']),
             // Sumber dropdown "Nama Posisi": section/divisi, dikelompokkan per departemen.
             'divisi'     => Divisi::with('departemen:id,nama')
                 ->get(['id', 'departemen_id', 'nama', 'jurusan'])
@@ -90,24 +92,24 @@ class LowonganAdminController extends Controller
 
     private function validasi(Request $request): array
     {
-        $data = $request->validate([
-            'divisi_id'         => ['required', 'integer', 'exists:divisi,id'],
+        $data = $request->validate(Divisi::aturanPilihan() + [
             'tipe_magang'       => ['required', Rule::in(['smk', 'kuliah'])],
             'kuota'             => ['required', 'integer', 'min:1', 'max:100'],
             'jurusan_diterima'  => ['nullable', 'string', 'max:2000'],
             'deskripsi'         => ['nullable', 'string', 'max:2000'],
             'status'            => ['required', Rule::in(['draft', 'dibuka', 'ditutup'])],
             'batas_pendaftaran' => ['nullable', 'date'],
-        ], [
-            'divisi_id.required' => 'Nama posisi wajib dipilih.',
-            'divisi_id.exists'   => 'Posisi yang dipilih tidak valid.',
-            'kuota.min'          => 'Kuota minimal 1 orang.',
+        ], Divisi::pesanPilihan() + [
+            'kuota.min' => 'Kuota minimal 1 orang.',
         ]);
 
         // Nama posisi & departemen mengikuti section yang dipilih (bukan diketik manual).
-        $divisi = Divisi::findOrFail($data['divisi_id']);
+        $divisi = Divisi::dariPilihan($data, $data['jurusan_diterima'] ?? null);
+        $data['divisi_id']     = $divisi->id;
         $data['judul']         = $divisi->nama;
         $data['departemen_id'] = $divisi->departemen_id;
+
+        unset($data['divisi_baru_nama'], $data['divisi_baru_departemen_id']);
 
         return $data;
     }

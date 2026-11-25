@@ -38,7 +38,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div class="sm:col-span-3">
                     <label class="{{ $lbl }}">Posisi (Section) <span class="text-rose-500">*</span></label>
-                    <select name="divisi_id" required class="{{ $inp }}">
+                    <select name="divisi_id" id="fDivisi" required class="{{ $inp }}">
                         <option value="">- Pilih posisi -</option>
                         @foreach ($divisi->groupBy(fn ($d) => $d->departemen?->nama ?? 'Tanpa departemen') as $namaDept => $daftar)
                             <optgroup label="{{ $namaDept }}">
@@ -47,7 +47,9 @@
                                 @endforeach
                             </optgroup>
                         @endforeach
+                    <option value="lainnya" @selected(old('divisi_id') === 'lainnya')>Lainnya (section belum ada di daftar)</option>
                     </select>
+                    @include('admin.partials.divisi-lainnya')
                 </div>
                 <div class="sm:col-span-1">
                     <label class="{{ $lbl }}">Tanggal Mulai <span class="text-rose-500">*</span></label>

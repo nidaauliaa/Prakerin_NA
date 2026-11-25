@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Departemen;
 use App\Models\Divisi;
 use App\Models\Pelamar;
 use App\Services\PesertaInternalService;
@@ -47,6 +48,7 @@ class LamaranInternalController extends Controller
 
         return view('admin.lamaran.internal-form', [
             'pelamar'    => $pelamar,
+            'departemen' => Departemen::orderBy('nama')->get(['id', 'nama']),
             'divisi'     => Divisi::with('departemen:id,nama')->get(['id', 'departemen_id', 'nama'])
                 ->sortBy(fn ($d) => ($d->departemen?->nama ?? '') . '|' . $d->nama)->values(),
         ]);
@@ -54,13 +56,11 @@ class LamaranInternalController extends Controller
 
     public function store(Request $request, Pelamar $pelamar, PesertaInternalService $layanan)
     {
-        $data = $request->validate([
-            'divisi_id'     => ['required', 'integer', 'exists:divisi,id'],
+        $data = $request->validate(Divisi::aturanPilihan() + [
             // Periode bebas: tidak ada batas minimal durasi untuk jalur internal.
             'tgl_mulai'     => ['required', 'date'],
             'tgl_selesai'   => ['required', 'date', 'after:tgl_mulai'],
-        ], [
-            'divisi_id.required'     => 'Posisi (section) wajib dipilih.',
+        ], Divisi::pesanPilihan() + [
             'tgl_mulai.required'     => 'Tanggal mulai wajib diisi.',
             'tgl_selesai.required'   => 'Tanggal selesai wajib diisi.',
             'tgl_selesai.after'      => 'Tanggal selesai harus setelah tanggal mulai.',
@@ -69,7 +69,7 @@ class LamaranInternalController extends Controller
         try {
             $hasil = $layanan->buat(
                 $pelamar,
-                (int) $data['divisi_id'],
+                Divisi::dariPilihan($data)->id,
                 $data['tgl_mulai'],
                 $data['tgl_selesai'],
                 config('auth.guards.admin') ? Auth::guard('admin')->id() : null

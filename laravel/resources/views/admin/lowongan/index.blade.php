@@ -124,8 +124,10 @@
                                 @endforeach
                             </optgroup>
                         @endforeach
+                    <option value="lainnya" @selected(old('divisi_id') === 'lainnya')>Lainnya (section belum ada di daftar)</option>
                     </select>
-                    <p class="text-[11px] text-slate-400 mt-1">Pilihan diambil dari daftar section. Departemen dan kualifikasi jurusan terisi otomatis.</p>
+                    @include('admin.partials.divisi-lainnya')
+                    <p class="text-[11px] text-slate-400 mt-1">Pilihan diambil dari daftar section. Departemen dan kualifikasi jurusan terisi otomatis. Kalau belum ada, pilih "Lainnya".</p>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -195,6 +197,7 @@
     function isiForm(d) {
         el('fDivisi').value = d.divisi_id ?? '';
         tampilDept();
+        toggleLainnya();
         el('fTipe').value = d.tipe_magang ?? 'smk';
         el('fKuota').value = d.kuota ?? 1;
         el('fStatus').value = d.status ?? 'dibuka';
@@ -204,13 +207,13 @@
     }
 
     function tampilDept() {
-        el('fDept').value = divisiData[el('fDivisi').value]?.dept ?? '';
+        el('fDept').value = el('fDivisi').value === 'lainnya' ? '(sesuai departemen section baru)' : (divisiData[el('fDivisi').value]?.dept ?? '');
     }
 
     // Pilih section -> departemen & kualifikasi jurusan terisi otomatis (jurusan tetap bisa diedit).
     el('fDivisi').addEventListener('change', () => {
         tampilDept();
-        el('fJurusan').value = divisiData[el('fDivisi').value]?.jurusan ?? '';
+        el('fJurusan').value = el('fDivisi').value === 'lainnya' ? '' : (divisiData[el('fDivisi').value]?.jurusan ?? '');
     });
 
     function bukaForm(id) {
