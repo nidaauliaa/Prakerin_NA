@@ -1,5 +1,5 @@
 <h2>Masuk ke Akun Anda</h2>
-<p class="sub">Masukkan NIS/NIM &amp; kata sandi yang diberikan admin</p>
+<p class="sub">Masukkan NIS/NIM &amp; kata sandi yang sama dengan Portal Pendaftaran Prakerin</p>
 
 <form method="POST" action="{{ route('login.store') }}">
     @csrf
@@ -20,4 +20,4 @@
     <button class="btn" type="submit">Masuk ke Akun →</button>
 </form>
 
-<p class="switch">Akun dibuat oleh admin. Belum punya akun? Hubungi admin.</p>
+<p class="switch">Peserta yang bisa login hanya peserta yang sudah resmi diterima pada Portal Pendaftaran Prakerin.</p>

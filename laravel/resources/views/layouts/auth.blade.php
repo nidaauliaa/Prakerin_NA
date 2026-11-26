@@ -95,12 +95,13 @@ body{margin:0;font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:va
     <a href="{{ route('beranda') }}" class="back">&larr;</a>
 
     <div class="brand-mid">
-      <div class="badge"><i></i> @yield('badge', 'Portal Pendaftaran')</div>
-      <h1>Selamat Datang di<br><span class="grad">Portal Resmi Prakerin</span></h1>
-      <p>Akses portal akun peserta untuk memantau status lamaran, verifikasi berkas sekolah/kampus, dan alokasi periode pengerjaan.</p>
+      <div class="badge"><i></i> @yield('badge', 'Portal Peserta Magang')</div>
+      <h1>Selamat Datang,<br><span class="grad">di Portal Absensi Prakerin</span></h1>
+      <p>Catat kehadiran, kirim laporan harian, dan kumpulkan tugas dari mentor dengan mudah di satu tempat selama masa prakerinmu.</p>
       <div class="feat">
-        <div class="f"><span class="ic">🛡️</span><div><b>Proses Realtime</b><small>Status seleksi transparan</small></div></div>
-        <div class="f"><span class="ic">🔒</span><div><b>Aman &amp; Terpusat</b><small>Verifikasi terintegrasi</small></div></div>
+        <div class="f"><span class="ic">📷</span><div><b>Presensi Scan</b><small>Scan QR ID card untuk absen</small></div></div>
+        <div class="f"><span class="ic">📝</span><div><b>Riwayat Laporan</b><small>Lihat laporan harian yang sudah kamu kirim</small></div></div>
+        <div class="f"><span class="ic">📎</span><div><b>Upload Tugas</b><small>Upload tugas yang diberikan oleh mentor</small></div></div>
       </div>
     </div>
 
@@ -108,7 +109,7 @@ body{margin:0;font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:va
       <a href="{{ route('login') }}" class="lb-masuk">Login</a>
     </div>
 
-    <div class="brand-foot"><span>© {{ date('Y') }} PT MEKAR ARMADA JAYA</span><a href="#">Butuh bantuan?</a></div>
+    <div class="brand-foot"><span>© {{ date('Y') }} PT MEKAR ARMADA JAYA</span>Powered by New Armada IT Team</div>
   </div>
 
   <div class="formside">

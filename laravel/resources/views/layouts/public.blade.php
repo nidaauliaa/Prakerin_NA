@@ -147,17 +147,42 @@
                     </p>
                 </div>
 
-                <!-- Kontak -->
-                <div class="md:col-span-3 space-y-2">
-                    <h4 class="text-white font-bold text-sm uppercase tracking-wider">Kontak</h4>
-                    <p class="text-sm text-slate-400">+6281217609906</p>
-                    <p class="text-sm text-slate-400">prakerin.maj@gmail.com</p>
+                <!-- Sosial Media -->
+                <div class="md:col-span-2 space-y-2">
+                    <h4 class="text-white font-bold text-sm uppercase tracking-wider">Sosial Media</h4>
+                    <ul class="space-y-1.5 text-sm text-slate-400">
+                        <li>
+                            <a href="https://wa.me/6281217609906" class="inline-flex items-center gap-1.5 hover:text-white hover:underline transition" target="_blank" rel="noopener noreferrer">
+                                <i class="fa-brands fa-whatsapp"></i> WhatsApp
+                            </a>
+                        </li>
+                        <li>
+                            <a href="mailto:prakerin.maj@gmail.com" class="inline-flex items-center gap-1.5 hover:text-white hover:underline transition">
+                                <i class="fa-regular fa-envelope"></i> Email
+                            </a>
+                        </li>
+                        <li>
+                            <a href="https://www.instagram.com/newarmada.id/" class="inline-flex items-center gap-1.5 hover:text-white hover:underline transition" target="_blank" rel="noopener noreferrer">
+                                <i class="fa-brands fa-instagram"></i> Instagram
+                            </a>
+                        </li>
+                        <li>
+                            <a href="https://www.youtube.com/@newarmada" class="inline-flex items-center gap-1.5 hover:text-white hover:underline transition" target="_blank" rel="noopener noreferrer">
+                                <i class="fa-brands fa-youtube"></i> YouTube
+                            </a>
+                        </li>
+                        <li>
+                            <a href="https://www.linkedin.com/company/newarmada/" class="inline-flex items-center gap-1.5 hover:text-white hover:underline transition" target="_blank" rel="noopener noreferrer">
+                                <i class="fa-brands fa-linkedin"></i> LinkedIn
+                            </a>
+                        </li>
+                    </ul>
                 </div>
 
                 <!-- Alamat -->
-                <div class="md:col-span-3 space-y-2">
+                <div class="md:col-span-4 space-y-2">
                     <h4 class="text-white font-bold text-sm uppercase tracking-wider">Alamat</h4>
-                    <p class="text-sm text-slate-400">
+                    <p class="text-sm text-slate-400 leading-relaxed">
                         Jl. Mayjen Bambang Soegeng No.7, Kedungdowo, Mertoyudan, Kec. Mertoyudan, Kabupaten Magelang, Jawa Tengah 56172.
                     </p>
                 </div>
@@ -169,13 +194,15 @@
                         <li><a href="{{ route('beranda') }}#beranda" class="hover:text-white transition">Beranda</a></li>
                         <li><a href="{{ route('beranda') }}#lowongan" class="hover:text-white transition">Lowongan</a></li>
                         <li><a href="{{ route('beranda') }}#profil" class="hover:text-white transition">Tentang</a></li>
+                        <li><a href="{{ route('beranda') }}#galeri" class="hover:text-white transition">Galeri</a></li>
+                        <li><a href="{{ route('beranda') }}#kontak" class="hover:text-white transition">Kontak</a></li>
                     </ul>
                 </div>
             </div>
 
             <div class="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
-                <p>&copy; 2026 New Armada. Seluruh hak cipta dilindungi.</p>
-                <p>Program Magang & Prakerin Industri</p>
+                <p>© {{ date('Y') }} PT Mekar Armada Jaya.</p>
+                <p>Powered by New Armada IT Team</p>
             </div>
         </div>
     </footer>
